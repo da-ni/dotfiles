@@ -43,9 +43,9 @@ command -v pacman >/dev/null 2>&1 || {
 }
 
 case "$PROFILE" in
-  home)   PACKAGES=(scripts bash hypr waybar git) ;;
-  work)   PACKAGES=(scripts bash hypr waybar git) ;;
-  server) PACKAGES=(scripts bash git) ;;
+  home)   PACKAGES=(bash bin hypr usr-local waybar ) ;;
+  work)   PACKAGES=(bash bin hypr openconnect usr-local waybar) ;;
+  server) PACKAGES=(bash) ;;
   *) err "Unknown profile: $PROFILE (expected: home|work|server)"; exit 1 ;;
 esac
 
