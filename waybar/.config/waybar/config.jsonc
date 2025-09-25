@@ -11,6 +11,7 @@
     "group/tray-expander",
     "bluetooth",
     "network",
+    "custom/vpn",
     "pulseaudio",
     "cpu",
     "battery"
@@ -44,7 +45,7 @@
   "format-en": "en",
   "format-de": "de",
   "tooltip": false
-},
+  },
   "custom/omarchy": {
     "format": "<span font='omarchy'>\ue900</span>",
     "on-click": "omarchy-menu",
@@ -82,6 +83,11 @@
     "interval": 3,
     "spacing": 1,
     "on-click": "omarchy-launch-wifi"
+  },
+  "custom/vpn": {
+    "exec": "~/.local/bin/vpn-status.sh",
+    "interval": 5,
+    "return-type": "json"
   },
   "battery": {
     "format": "{capacity}% {icon}",

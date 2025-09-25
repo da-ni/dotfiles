@@ -45,6 +45,13 @@
   min-width: 12px;
   margin: 0 7.5px;
 }
+#custom-vpn {
+  background: transparent;
+  margin-left: -14px;
+  margin-top: 8px;
+  font-size: 0.7em;
+  color: #B0B0B0;
+}
 
 #custom-expand-icon {
   margin-right: 7px;
