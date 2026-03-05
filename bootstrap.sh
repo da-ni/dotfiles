@@ -96,6 +96,41 @@ collect_targets() {
   done
 }
 
+cleanup_legacy_symlinks() {
+  local -a legacy_targets=(
+    "$HOME/.bashrc"
+    "$HOME/.config/hypr/input.conf"
+    "$HOME/.config/hypr/monitors.conf"
+    "$HOME/.config/hypr/bindings.conf"
+    "$HOME/.config/hypr/hypridle.conf"
+    "$HOME/.config/waybar/config.jsonc"
+    "$HOME/.config/waybar/style.css"
+    "$HOME/.local/bin/toggle-mirror.sh"
+  )
+
+  local target link_target
+  local removed=0
+  for target in "${legacy_targets[@]}"; do
+    [[ -L "$target" ]] || continue
+    link_target="$(readlink "$target")"
+
+    if [[ ! -e "$target" ]]; then
+      rm -f -- "$target"
+      info "Removed dangling legacy symlink: $target -> $link_target"
+      ((removed+=1))
+      continue
+    fi
+
+    if [[ "$link_target" == *"/bash/"* || "$link_target" == *"/hypr/"* || "$link_target" == *"/waybar/"* || "$link_target" == *"/bin/"* ]]; then
+      rm -f -- "$target"
+      info "Removed legacy symlink: $target -> $link_target"
+      ((removed+=1))
+    fi
+  done
+
+  ((removed==0)) && info "No legacy symlinks to remove."
+}
+
 collect_conflicts() {
   collect_targets \
   | sort -zu \
@@ -189,6 +224,7 @@ case "$MODE" in
   uninstall)
     require_stow
     run_stow -D "${PACKAGES[@]}"
+    cleanup_legacy_symlinks
     ;;
   check)
     require_stow
@@ -204,6 +240,7 @@ case "$MODE" in
   force)
     require_stow
     backup_conflicts
+    cleanup_legacy_symlinks
     info "Apply:"
     run_stow "${PACKAGES[@]}"
     ensure_script_permissions
