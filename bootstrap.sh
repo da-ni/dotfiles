@@ -18,8 +18,8 @@ Usage: bootstrap.sh [--profile home|work|server] [--dry-run|--apply|--force|--ch
 
 Stows only Omarchy-safe overlay files into:
   ~/.config/omarchy/overlays
-  ~/.local/bin/omarchy-*
-
+  ~/.local/bin/* (overlay helper scripts)
+  
 Profiles:
   home/work/server : currently all install the same overlay package
 
@@ -68,6 +68,17 @@ mkdir -p "$HOME/.local/bin" "$HOME/.config" "$HOME/.config/omarchy/overlays"
 
 run_stow() { stow -v -d "$DOTFILES_DIR" -t "$HOME" "$@"; }
 
+ensure_script_permissions() {
+  local bindir="$DOTFILES_DIR/overlays/.local/bin"
+  [[ -d "$bindir" ]] || return 0
+
+  local script target
+  while IFS= read -r -d '' script; do
+    chmod +x "$script"
+    target="$HOME/.local/bin/$(basename "$script")"
+    [[ -e "$target" ]] && chmod +x "$target"
+  done < <(find "$bindir" -maxdepth 1 -type f -print0)
+}
 collect_targets() {
   local pkg pkgdir
   for pkg in "${PACKAGES[@]}"; do
@@ -82,6 +93,41 @@ collect_targets() {
         done
     )
   done
+}
+
+cleanup_legacy_symlinks() {
+  local -a legacy_targets=(
+    "$HOME/.bashrc"
+    "$HOME/.config/hypr/input.conf"
+    "$HOME/.config/hypr/monitors.conf"
+    "$HOME/.config/hypr/bindings.conf"
+    "$HOME/.config/hypr/hypridle.conf"
+    "$HOME/.config/waybar/config.jsonc"
+    "$HOME/.config/waybar/style.css"
+    "$HOME/.local/bin/toggle-mirror.sh"
+  )
+
+  local target link_target
+  local removed=0
+  for target in "${legacy_targets[@]}"; do
+    [[ -L "$target" ]] || continue
+    link_target="$(readlink "$target")"
+
+    if [[ ! -e "$target" ]]; then
+      rm -f -- "$target"
+      info "Removed dangling legacy symlink: $target -> $link_target"
+      ((removed+=1))
+      continue
+    fi
+
+    if [[ "$link_target" == *"/bash/"* || "$link_target" == *"/hypr/"* || "$link_target" == *"/waybar/"* || "$link_target" == *"/bin/"* ]]; then
+      rm -f -- "$target"
+      info "Removed legacy symlink: $target -> $link_target"
+      ((removed+=1))
+    fi
+  done
+
+  ((removed==0)) && info "No legacy symlinks to remove."
 }
 
 collect_conflicts() {
@@ -177,6 +223,7 @@ case "$MODE" in
   uninstall)
     require_stow
     run_stow -D "${PACKAGES[@]}"
+    cleanup_legacy_symlinks
     ;;
   check)
     require_stow
@@ -192,8 +239,10 @@ case "$MODE" in
   force)
     require_stow
     backup_conflicts
+    cleanup_legacy_symlinks
     info "Apply:"
     run_stow "${PACKAGES[@]}"
+    ensure_script_permissions
     ;;
   apply)
     require_stow
@@ -201,6 +250,10 @@ case "$MODE" in
     run_stow -n "${PACKAGES[@]}" || true
     info "Apply:"
     run_stow "${PACKAGES[@]}"
+    ensure_script_permissions
+    ;;
+  report)
+    report_customizations
     ;;
   report)
     report_customizations
