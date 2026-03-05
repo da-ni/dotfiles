@@ -204,9 +204,10 @@ report_customizations() {
   done
 
   if ((local_overlay_count==0)); then
-    err "No Omarchy overlay files found at $omarchy_overlays_path"
-    err "Install/clone Omarchy locally under ~/.config/omarchy, then rerun with --report"
-    exit 1
+    info "No Omarchy overlay files found at $omarchy_overlays_path"
+    info "Fresh install detected (or overlays not generated yet)."
+    info "Run ./bootstrap.sh --apply first, then rerun with --report."
+    exit 0
   fi
 
   local overlay
