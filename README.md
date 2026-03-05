@@ -31,13 +31,12 @@ overlays/
 - `--check`: list conflicts only
 - `--force`: back up conflicts, then apply
 - `--uninstall`: remove symlinks created by this repo
-- `--report`: diff repo overlay files against local Omarchy overlays at `$OMARCHY_PATH`
+- `--report`: diff repo overlay files against local Omarchy overlays under `~/.config/omarchy`
 
 ### Requirements
 
 - `stow` is required for stow modes (`apply`, `dry-run`, `check`, `force`, `uninstall`)
 - `--report` does **not** require `stow`, but it requires local Omarchy overlays (default path: `~/.config/omarchy`, using `overlays/` under it)
-- If `OMARCHY_PATH` is exported in your shell, `--report` uses that value
 
 ## Examples
 
@@ -51,9 +50,6 @@ overlays/
 # Compare repo overlays to local Omarchy overlays
 ./bootstrap.sh --report
 
-# Compare against a custom Omarchy overlays directory
-OMARCHY_PATH=/path/to/omarchy ./bootstrap.sh --report
-# (or point directly at /path/to/omarchy/overlays)
 ```
 
 ## Notes

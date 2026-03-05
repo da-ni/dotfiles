@@ -7,7 +7,7 @@ MODE="apply"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
 OVERLAY_PACKAGE="overlays"
-OMARCHY_PATH="${OMARCHY_PATH:-$HOME/.config/omarchy}"
+OMARCHY_PATH="$HOME/.config/omarchy"
 
 err()  { printf 'Error: %s\n' "$*" >&2; }
 info() { printf '[*] %s\n' "$*"; }
@@ -189,7 +189,7 @@ report_customizations() {
 
   if [[ ! -d "$omarchy_overlays_path" ]]; then
     err "Omarchy overlays not found at $omarchy_overlays_path"
-    err "Set OMARCHY_PATH to ~/.config/omarchy (or ~/.config/omarchy/overlays) and rerun with --report"
+    err "Ensure Omarchy is installed at ~/.config/omarchy (or ~/.config/omarchy/overlays), then rerun with --report"
     exit 1
   fi
 
@@ -205,7 +205,7 @@ report_customizations() {
 
   if ((local_overlay_count==0)); then
     err "No Omarchy overlay files found at $omarchy_overlays_path"
-    err "Install/clone Omarchy locally or set OMARCHY_PATH to your checkout, then rerun with --report"
+    err "Install/clone Omarchy locally under ~/.config/omarchy, then rerun with --report"
     exit 1
   fi
 
