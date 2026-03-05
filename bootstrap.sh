@@ -193,7 +193,23 @@ report_customizations() {
     exit 1
   fi
 
-  local pair base overlay
+  local local_overlay_count=0
+  local pair base
+  for pair in "${mapping[@]}"; do
+    base="${pair%%|*}"
+    if [[ -f "$omarchy_overlays_path/$base" ]]; then
+      ((local_overlay_count+=1))
+      break
+    fi
+  done
+
+  if ((local_overlay_count==0)); then
+    err "No Omarchy overlay files found at $omarchy_overlays_path"
+    err "Install/clone Omarchy locally or set OMARCHY_PATH to your checkout, then rerun with --report"
+    exit 1
+  fi
+
+  local overlay
   for pair in "${mapping[@]}"; do
     base="${pair%%|*}"
     overlay="${pair##*|}"
