@@ -7,7 +7,7 @@ MODE="apply"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
 OVERLAY_PACKAGE="overlays"
-OMARCHY_PATH="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
+OMARCHY_PATH="${OMARCHY_PATH:-$HOME/.config/omarchy}"
 
 err()  { printf 'Error: %s\n' "$*" >&2; }
 info() { printf '[*] %s\n' "$*"; }
@@ -29,7 +29,7 @@ Modes:
   --force     Backup conflicting targets, then apply
   --check     List conflicts only (no changes)
   --uninstall Remove symlinks previously created by this repo
-  --report    Diff local overlays against local Omarchy default files
+  --report    Diff local overlays against local Omarchy overlay files
 USAGE
 }
 
@@ -173,22 +173,43 @@ backup_conflicts() {
 
 report_customizations() {
   local -a mapping=(
-    "default/bash/rc|$DOTFILES_DIR/overlays/.config/omarchy/overlays/bash/bashrc.overlay"
-    "default/hypr/input.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/input.overlay.conf"
-    "default/hypr/monitors.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/monitors.overlay.conf"
-    "default/hypr/bindings.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/bindings.overlay.conf"
-    "default/hypr/hypridle.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/hypridle.overlay.conf"
-    "default/waybar/config.jsonc|$DOTFILES_DIR/overlays/.config/omarchy/overlays/waybar/config.overlay.jsonc"
-    "default/waybar/style.css|$DOTFILES_DIR/overlays/.config/omarchy/overlays/waybar/style.overlay.css"
+    "bash/bashrc.overlay|$DOTFILES_DIR/overlays/.config/omarchy/overlays/bash/bashrc.overlay"
+    "hypr/input.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/input.overlay.conf"
+    "hypr/monitors.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/monitors.overlay.conf"
+    "hypr/bindings.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/bindings.overlay.conf"
+    "hypr/hypridle.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/hypridle.overlay.conf"
+    "waybar/config.overlay.jsonc|$DOTFILES_DIR/overlays/.config/omarchy/overlays/waybar/config.overlay.jsonc"
+    "waybar/style.overlay.css|$DOTFILES_DIR/overlays/.config/omarchy/overlays/waybar/style.overlay.css"
   )
 
-  if [[ ! -d "$OMARCHY_PATH/default" ]]; then
-    err "Omarchy defaults not found at $OMARCHY_PATH/default"
-    err "Install Omarchy locally (or set OMARCHY_PATH) and rerun with --report"
+  local omarchy_overlays_path="$OMARCHY_PATH"
+  if [[ -d "$OMARCHY_PATH/overlays" ]]; then
+    omarchy_overlays_path="$OMARCHY_PATH/overlays"
+  fi
+
+  if [[ ! -d "$omarchy_overlays_path" ]]; then
+    err "Omarchy overlays not found at $omarchy_overlays_path"
+    err "Set OMARCHY_PATH to ~/.config/omarchy (or ~/.config/omarchy/overlays) and rerun with --report"
     exit 1
   fi
 
-  local pair base overlay
+  local local_overlay_count=0
+  local pair base
+  for pair in "${mapping[@]}"; do
+    base="${pair%%|*}"
+    if [[ -f "$omarchy_overlays_path/$base" ]]; then
+      ((local_overlay_count+=1))
+      break
+    fi
+  done
+
+  if ((local_overlay_count==0)); then
+    err "No Omarchy overlay files found at $omarchy_overlays_path"
+    err "Install/clone Omarchy locally or set OMARCHY_PATH to your checkout, then rerun with --report"
+    exit 1
+  fi
+
+  local overlay
   for pair in "${mapping[@]}"; do
     base="${pair%%|*}"
     overlay="${pair##*|}"
@@ -199,12 +220,12 @@ report_customizations() {
       continue
     fi
 
-    if [[ ! -f "$OMARCHY_PATH/$base" ]]; then
-      echo "Base file missing: $OMARCHY_PATH/$base"
+    if [[ ! -f "$omarchy_overlays_path/$base" ]]; then
+      echo "Local file missing: $omarchy_overlays_path/$base"
       continue
     fi
 
-    if diff -u "$OMARCHY_PATH/$base" "$overlay"; then
+    if diff -u "$omarchy_overlays_path/$base" "$overlay"; then
       echo "No custom changes."
     fi
   done
@@ -251,9 +272,6 @@ case "$MODE" in
     info "Apply:"
     run_stow "${PACKAGES[@]}"
     ensure_script_permissions
-    ;;
-  report)
-    report_customizations
     ;;
   report)
     report_customizations
