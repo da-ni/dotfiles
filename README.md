@@ -37,7 +37,6 @@ overlays/
 
 - `stow` is required for stow modes (`apply`, `dry-run`, `check`, `force`, `uninstall`)
 - `--report` does **not** require `stow`, but it requires local Omarchy overlays (default path: `~/.config/omarchy`, using `overlays/` under it)
-- On a fresh install with no local overlay files yet, `--report` exits successfully and tells you to run `--apply` first
 
 ## Examples
 
