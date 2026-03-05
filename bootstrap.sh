@@ -19,7 +19,7 @@ Usage: bootstrap.sh [--profile home|work|server] [--dry-run|--apply|--force|--ch
 Stows only Omarchy-safe overlay files into:
   ~/.config/omarchy/overlays
   ~/.local/bin/* (overlay helper scripts)
-
+  
 Profiles:
   home/work/server : currently all install the same overlay package
 
@@ -79,7 +79,6 @@ ensure_script_permissions() {
     [[ -e "$target" ]] && chmod +x "$target"
   done < <(find "$bindir" -maxdepth 1 -type f -print0)
 }
-
 collect_targets() {
   local pkg pkgdir
   for pkg in "${PACKAGES[@]}"; do
@@ -252,6 +251,9 @@ case "$MODE" in
     info "Apply:"
     run_stow "${PACKAGES[@]}"
     ensure_script_permissions
+    ;;
+  report)
+    report_customizations
     ;;
   report)
     report_customizations
