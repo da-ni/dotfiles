@@ -19,7 +19,6 @@ Usage: bootstrap.sh [--profile home|work|server] [--dry-run|--apply|--force|--ch
 Stows only Omarchy-safe overlay files into:
   ~/.config/omarchy/overlays
   ~/.local/bin/* (overlay helper scripts)
-  
 Profiles:
   home/work/server : currently all install the same overlay package
 
@@ -30,6 +29,10 @@ Modes:
   --check     List conflicts only (no changes)
   --uninstall Remove symlinks previously created by this repo
   --report    Diff local overlays against local Omarchy overlay files
+
+Notes:
+  * Overlay files are treated as deltas, not guaranteed whole-file replacements.
+  * In Hyprland specifically, binds and rules are additive unless explicitly removed.
 USAGE
 }
 
@@ -96,6 +99,7 @@ collect_targets() {
 }
 
 cleanup_legacy_symlinks() {
+  # Migration cleanup for pre-overlay dotfile layouts only.
   local -a legacy_targets=(
     "$HOME/.bashrc"
     "$HOME/.config/hypr/input.conf"
@@ -174,10 +178,12 @@ backup_conflicts() {
 report_customizations() {
   local -a mapping=(
     "bash/bashrc.overlay|$DOTFILES_DIR/overlays/.config/omarchy/overlays/bash/bashrc.overlay"
-    "hypr/input.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/input.overlay.conf"
-    "hypr/monitors.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/monitors.overlay.conf"
-    "hypr/bindings.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/bindings.overlay.conf"
-    "hypr/hypridle.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/hypridle.overlay.conf"
+    "hypr/10-custom-apps.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/10-custom-apps.overlay.conf"
+    "hypr/20-rebinds.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/20-rebinds.overlay.conf"
+    "hypr/30-input.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/30-input.overlay.conf"
+    "hypr/40-monitors.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/40-monitors.overlay.conf"
+    "hypr/50-idle.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/50-idle.overlay.conf"
+    "hypr/60-rules.overlay.conf|$DOTFILES_DIR/overlays/.config/omarchy/overlays/hypr/60-rules.overlay.conf"
     "waybar/config.overlay.jsonc|$DOTFILES_DIR/overlays/.config/omarchy/overlays/waybar/config.overlay.jsonc"
     "waybar/style.overlay.css|$DOTFILES_DIR/overlays/.config/omarchy/overlays/waybar/style.overlay.css"
   )
