@@ -6,6 +6,10 @@ PLAYERCTL_AVAILABLE=0
 PLAYING_CACHE=0
 LAST_CHECK_SECONDS=-1
 LAST_EMITTED_JSON=""
+IDLE_POLL_FAST=1
+IDLE_POLL_SLOW=5
+IDLE_SLOW_AFTER=45
+LAST_PLAYING_SECONDS=0
 
 # Omarchy currently pins Waybar 0.15.x, where high-frequency custom modules can
 # interfere with hover/tooltip behavior. Cache playback state and only emit
@@ -20,7 +24,7 @@ fifo_file="/tmp/waybar_cava_${$}.fifo"
 cat >"$config_file" <<'EOF'
 [general]
 bars = 24
-framerate = 20
+framerate = 12
 autosens = 1
 
 [output]
@@ -112,14 +116,22 @@ while true; do
   refresh_playback_state
 
   if (( PLAYING_CACHE == 0 )); then
+    idle_for=$((SECONDS - LAST_PLAYING_SECONDS))
     if (( MODULE_VISIBLE == 1 )); then
       print_hidden
       MODULE_VISIBLE=0
     fi
     stop_cava
-    sleep 1
+
+    if (( idle_for >= IDLE_SLOW_AFTER )); then
+      sleep "$IDLE_POLL_SLOW"
+    else
+      sleep "$IDLE_POLL_FAST"
+    fi
     continue
   fi
+
+  LAST_PLAYING_SECONDS=$SECONDS
 
   if [[ -z "$CAVA_PID" ]] || ! kill -0 "$CAVA_PID" 2>/dev/null; then
     start_cava
@@ -130,5 +142,7 @@ while true; do
     print_visible "$(convert_to_bars "$line")"
   elif [[ -n "$CAVA_PID" ]] && ! kill -0 "$CAVA_PID" 2>/dev/null; then
     CAVA_PID=""
+  else
+    sleep 0.05
   fi
 done
