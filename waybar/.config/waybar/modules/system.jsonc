@@ -113,7 +113,6 @@
     },
     "modules": [
       "custom/expand-icon",
-      "tray",
       "cpu",
       "memory",
       "disk"
