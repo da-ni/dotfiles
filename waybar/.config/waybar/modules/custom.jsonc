@@ -27,6 +27,7 @@
     "format": "{}",
     "return-type": "json",
     "hide-empty-text": true,
+    "tooltip": false,
     "exec": "~/.config/waybar/cava.sh"
   },
   "custom/netspeed": {

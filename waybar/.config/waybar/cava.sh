@@ -5,6 +5,11 @@ bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
 PLAYERCTL_AVAILABLE=0
 PLAYING_CACHE=0
 LAST_CHECK_SECONDS=-1
+LAST_EMITTED_JSON=""
+
+# Omarchy currently pins Waybar 0.15.x, where high-frequency custom modules can
+# interfere with hover/tooltip behavior. Cache playback state and only emit
+# changed JSON payloads to keep the bar responsive without sacrificing visuals.
 
 if command -v playerctl >/dev/null 2>&1; then
   PLAYERCTL_AVAILABLE=1
@@ -36,12 +41,27 @@ convert_to_bars() {
 
 print_visible() {
   local text="$1"
-  printf '{"text":"%s"}\n' "$text"
+  emit_json "{\"text\":\"$text\"}"
 }
 
 print_hidden() {
-  printf '{"text":"","class":"hidden"}\n'
+  emit_json '{"text":"","class":"hidden"}'
 }
+
+emit_json() {
+  local payload="$1"
+  if [[ "$payload" == "$LAST_EMITTED_JSON" ]]; then
+    return
+  fi
+  LAST_EMITTED_JSON="$payload"
+  printf '%s\n' "$payload"
+}
+
+cleanup() {
+  pkill -P $$ -x cava 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
 
 refresh_playback_state() {
   local status

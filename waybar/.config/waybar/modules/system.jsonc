@@ -127,31 +127,14 @@
     "icon-size": 12,
     "spacing": 12
   },
-  "mpris": {
-    "format": "{player_icon} {artist} - {title}",
-    "format-paused": "{status_icon} {artist} - {title}",
-    "format-stopped": "{status_icon}",
-    "format-disconnected": "",
-    "player-icons": {
-      "default": "󰓇",
-      "mpv": "🎵",
-      "spotify": "󰓇",
-      "chromium": "",
-      "edge": "󰇩",
-      "firefox": "󰈹"
-    },
-    "status-icons": {
-      "playing": "▶",
-      "paused": "⏸",
-      "stopped": "⏹"
-    },
-    "tooltip-format": "{title}\n{artist} - {album}\n{position}/{length}",
-    "tooltip-format-paused": "{title}\n{artist} - {album}\nPaused",
+  "custom/mpris": {
+    "format": "{}",
+    "return-type": "json",
+    "exec": "~/.config/waybar/mpris.sh",
     "on-click": "playerctl play-pause",
     "on-click-right": "playerctl stop",
     "on-scroll-up": "playerctl next",
-    "on-scroll-down": "playerctl previous",
-    "max-length": 30
+    "on-scroll-down": "playerctl previous"
   },
   "temperature": {
     "thermal-zone": 2,

@@ -3,7 +3,7 @@
     "custom/omarchy",
     "hyprland/workspaces",
     "hyprland/window",
-    "mpris",
+    "custom/mpris",
     "custom/cava"
   ],
   "modules-center": [

@@ -23,6 +23,8 @@ Stows:
   ~/.config/hypr/custom/*.conf
   ~/.config/waybar/config.jsonc
   ~/.config/waybar/style.css
+  ~/.config/waybar/modules/*
+  ~/.config/waybar/*.sh
   ~/.local/bin/*
 
 Also ensures one managed hook block exists in:
@@ -88,6 +90,45 @@ ensure_script_permissions() {
     target="$HOME/.local/bin/$(basename "$script")"
     [[ -e "$target" ]] && chmod +x "$target"
   done < <(find "$bindir" -maxdepth 1 -type f -print0)
+}
+
+ensure_waybar_script_permissions() {
+  local waybar_dir="$DOTFILES_DIR/waybar/.config/waybar"
+  [[ -d "$waybar_dir" ]] || return 0
+
+  local script target
+  while IFS= read -r -d '' script; do
+    chmod +x "$script"
+    target="$HOME/.config/waybar/$(basename "$script")"
+    [[ -e "$target" ]] && chmod +x "$target"
+  done < <(find "$waybar_dir" -maxdepth 1 -type f -name '*.sh' -print0)
+}
+
+remove_matching_absolute_symlinks() {
+  local pkg pkgdir rel source target source_resolved target_resolved link_target
+
+  for pkg in "${PACKAGES[@]}"; do
+    pkgdir="$DOTFILES_DIR/$pkg"
+    while IFS= read -r -d '' rel; do
+      source="$pkgdir/${rel#./}"
+      target="$HOME/${rel#./}"
+
+      [[ -L "$target" ]] || continue
+      link_target="$(readlink -- "$target" || true)"
+      [[ "$link_target" = /* ]] || continue
+
+      source_resolved="$(readlink -f -- "$source" || true)"
+      target_resolved="$(readlink -f -- "$target" || true)"
+
+      if [[ -n "$source_resolved" && "$source_resolved" == "$target_resolved" ]]; then
+        rm -f -- "$target"
+        info "Removed absolute symlink to let stow manage: $target"
+      fi
+    done < <(
+      cd "$pkgdir"
+      find . \( -type f -o -type l \) -print0
+    )
+  done
 }
 
 collect_package_files() {
@@ -262,19 +303,23 @@ case "$MODE" in
     ;;
   install)
     ensure_dirs
+    remove_matching_absolute_symlinks
     info "Backing up conflicting target files:"
     backup_conflicting_targets
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
     ensure_script_permissions
+    ensure_waybar_script_permissions
     info "Apply hook update:"
     ensure_hooks
     ;;
   apply)
     ensure_dirs
+    remove_matching_absolute_symlinks
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
     ensure_script_permissions
+    ensure_waybar_script_permissions
     info "Apply hook update:"
     ensure_hooks
     ;;

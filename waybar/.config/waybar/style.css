@@ -105,6 +105,7 @@ window#waybar.hidden {
 #window,
 #cava,
 #mpris,
+#custom-mpris,
 #cpu,
 #memory,
 #battery,
@@ -118,7 +119,6 @@ window#waybar.hidden {
 #custom-updatespacman,
 #custom-cava,
 #custom-netspeed,
-#custom-gpu,
 #clock,
 #tray-expander,
 #disk,
@@ -152,7 +152,8 @@ window#waybar.hidden {
 #battery,
 #pulseaudio,
 #cpu,
-#mpris {
+#mpris,
+#custom-mpris {
   color: @foreground;
 }
 #network,
@@ -175,7 +176,8 @@ window#waybar.hidden {
   border-radius: 0;
   opacity: 0;
 }
-#mpris { min-width: 200px; }
+#mpris,
+#custom-mpris { min-width: 200px; }
 #tray-expander { padding: 0 5px; color: @foreground; }
 #custom-expand-icon { color: @foreground; margin-left: 8px; }
 
@@ -197,10 +199,10 @@ window#waybar.hidden {
 #clock:hover,
 #custom-weather:hover,
 #custom-netspeed:hover,
-#custom-gpu:hover,
 #disk:hover,
 #idle_inhibitor:hover,
 #mpris:hover,
+#custom-mpris:hover,
 #tray-expander:hover {
   background-color: @hover-bg;
   color: @foreground;
@@ -215,8 +217,12 @@ window#waybar.empty #window:hover,
 #custom-updatespacman.updated:hover,
 #mpris.stopped,
 #mpris.stopped:hover,
+#custom-mpris.stopped,
+#custom-mpris.stopped:hover,
 #mpris.disconnected,
-#mpris.disconnected:hover {
+#mpris.disconnected:hover,
+#custom-mpris.disconnected,
+#custom-mpris.disconnected:hover {
   padding: 0;
   margin: 0;
   min-width: 0;
