@@ -11,7 +11,6 @@ if [[ -z "${INTERNAL:-}" ]]; then
   exit 0
 fi
 
-# Gather all non-internal monitors (filter out common headless names just in case)
 mapfile -t EXTERNALS < <(
   jq -r '
     .[]
@@ -26,15 +25,12 @@ if (( ${#EXTERNALS[@]} == 0 )); then
   exit 0
 fi
 
-# Helper: get scale, default to 1
 get_scale() {
   local name="$1"
   jq -r --arg n "$name" '.[] | select(.name==$n) | (.scale // 1)' <<<"$J"
 }
 
 if [[ -f "$STATE_FILE" ]]; then
-  # UNMIRROR: just reset ALL externals to normal layout.
-  # (This is safe even if Hyprland thinks it isn't mirrored.)
   for ex in "${EXTERNALS[@]}"; do
     scale="$(get_scale "$ex")"
     hyprctl keyword monitor "$ex,preferred,auto,$scale"
@@ -42,7 +38,6 @@ if [[ -f "$STATE_FILE" ]]; then
   rm -f "$STATE_FILE"
   notify-send "Display Toggle" "Switched to Extended Mode"
 else
-  # MIRROR: mirror ALL externals to internal
   for ex in "${EXTERNALS[@]}"; do
     scale="$(get_scale "$ex")"
     hyprctl keyword monitor "$ex,preferred,auto,$scale,mirror,$INTERNAL"
