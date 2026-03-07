@@ -1,83 +1,267 @@
+/* =============================================================================
+   1. COLOR VARIABLES (Theme-Driven)
+   ========================================================================== */
 @import "../omarchy/current/theme/waybar.css";
 
+@define-color dark-bg @background;
+@define-color hover-bg alpha(@foreground, 0.16);
+@define-color muted-fg alpha(@foreground, 0.6);
+@define-color soft-fg alpha(@foreground, 0.85);
+@define-color card-bg alpha(@foreground, 0.06);
+@define-color card-border alpha(@foreground, 0.16);
+@define-color card-border-strong alpha(@foreground, 0.28);
+
+/* =============================================================================
+   2. GLOBAL SETTINGS
+   ========================================================================== */
 * {
-  background-color: @background;
-  color: @foreground;
-
+  font-family: 'JetBrainsMono Nerd Font Propo';
+  font-size: 11px;
+  font-weight: bold;
   border: none;
-  border-radius: 0;
+  border-radius: 20px;
   min-height: 0;
-  font-family: 'CaskaydiaMono Nerd Font';
-  font-size: 12px;
-}
-
-.modules-left {
-  margin-left: 8px;
-}
-
-.modules-right {
-  margin-right: 8px;
-}
-
-#workspaces button {
-  all: initial;
-  padding: 0 6px;
-  margin: 0 1.5px;
-  min-width: 9px;
-}
-
-#workspaces button.empty {
-  opacity: 0.5;
-}
-
-#cpu,
-#battery,
-#pulseaudio,
-#custom-omarchy,
-#custom-screenrecording-indicator,
-#custom-update {
-  min-width: 12px;
-  margin: 0 7.5px;
-}
-
-#tray {
-  margin-right: 16px;
-}
-
-#bluetooth {
-  margin-right: 17px;
-}
-
-#network {
-  margin-right: 13px;
-}
-
-#custom-expand-icon {
-  margin-right: 20px;
 }
 
 tooltip {
-  padding: 2px;
+  background: @dark-bg;
+  border-radius: 15px;
+  border: 1px solid @card-border-strong;
 }
 
-#custom-update {
-  font-size: 10px;
+tooltip label {
+  color: @foreground;
+  padding: 5px;
 }
 
-#clock {
-  margin-left: 8.75px;
+window#waybar {
+  background-color: transparent;
+  transition-property: background-color;
+  transition-duration: .5s;
+  margin: 4px;
 }
 
-.hidden {
+window#waybar.hidden {
+  opacity: 0.2;
+}
+
+.modules-left,
+.modules-center,
+.modules-right {
+  background: transparent;
+  margin: 2px;
+}
+
+/* =============================================================================
+   3. WORKSPACES (1-10 RAINBOW)
+   ========================================================================== */
+#workspaces {
+  background-color: @card-bg;
+  border: 1px solid @card-border;
+  margin: 1px 2px;
+  padding: 0 6px;
+  border-radius: 20px;
+  opacity: 1;
+}
+
+#workspaces button {
+  color: @muted-fg;
+  background-color: transparent;
+  border: 1px solid transparent;
+  margin: 1px 2px;
+  padding: 0;
+  min-width: 24px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+/* HOVER EFFECT: GREEN */
+#workspaces button:hover {
+  background-color: @hover-bg;
+  color: @foreground;
+}
+
+/* BASE ACTIVE STATE */
+#workspaces button.active {
+  color: @background;
+  min-width: 24px;
+  background-color: @foreground;
+  border: 1px solid @card-border-strong;
+}
+
+#workspaces button.urgent {
+  color: @background;
+  background-color: @foreground;
+}
+
+#workspaces button.empty {
+  color: @muted-fg;
+}
+
+/* =============================================================================
+   4. MODULES - BASE STYLE
+   ========================================================================== */
+#tray,
+#window,
+#cava,
+#mpris,
+#cpu,
+#memory,
+#battery,
+#network,
+#temperature,
+#bluetooth,
+#pulseaudio,
+#custom-omarchy,
+#custom-weather,
+#custom-update,
+#custom-updatespacman,
+#custom-cava,
+#custom-netspeed,
+#custom-gpu,
+#clock,
+#tray-expander,
+#disk,
+#idle_inhibitor {
+  background-color: @card-bg;
+  background-image: linear-gradient(180deg, alpha(@foreground, 0.09), alpha(@foreground, 0.03));
+  border: 1px solid @card-border;
+  color: @foreground;
+  margin: 1px 2px;
+  padding: 0 12px;
+  border-radius: 20px;
+  opacity: 1;
+  padding: 0 10px;
+  transition: all 0.2s ease;
+}
+
+/* =============================================================================
+   5. MODULES - COLORFUL TEXT OVERRIDES
+   ========================================================================== */
+#custom-omarchy { color: @foreground; padding: 0 10px; font-size: 11px; }
+#window { color: @soft-fg; }
+#window label {
+  font-size: 0;
+  margin: 0;
+  padding: 0;
+}
+#clock { font-weight: 800; color: @foreground; }
+#custom-omarchy,
+#custom-update,
+#custom-updatespacman,
+#battery,
+#pulseaudio,
+#cpu,
+#mpris {
+  color: @foreground;
+}
+#network,
+#memory,
+#disk,
+#temperature,
+#bluetooth,
+#custom-weather,
+#cava,
+#custom-cava,
+#idle_inhibitor {
+  color: @soft-fg;
+}
+#cava, #custom-cava { padding: 0 12px; }
+#custom-cava.hidden {
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  background-color: transparent;
+  border-radius: 0;
+  opacity: 0;
+}
+#mpris { min-width: 200px; }
+#tray-expander { padding: 0 5px; color: @foreground; }
+#custom-expand-icon { color: @foreground; margin-left: 8px; }
+
+/* =============================================================================
+   6. UNIVERSAL HOVER EFFECT (GREEN)
+   ========================================================================== */
+#custom-omarchy:hover,
+#custom-update:hover,
+#custom-updatespacman:hover,
+#cava:hover,
+#tray:hover,
+#cpu:hover,
+#memory:hover,
+#temperature:hover,
+#bluetooth:hover,
+#network:hover,
+#pulseaudio:hover,
+#battery:hover,
+#clock:hover,
+#custom-weather:hover,
+#custom-netspeed:hover,
+#custom-gpu:hover,
+#disk:hover,
+#idle_inhibitor:hover,
+#mpris:hover,
+#tray-expander:hover {
+  background-color: @hover-bg;
+  color: @foreground;
+  border-color: @card-border-strong;
+}
+
+window#waybar.empty #window,
+window#waybar.empty #window:hover,
+#custom-cava.hidden,
+#custom-cava.hidden:hover,
+#custom-updatespacman.updated,
+#custom-updatespacman.updated:hover,
+#mpris.stopped,
+#mpris.stopped:hover,
+#mpris.disconnected,
+#mpris.disconnected:hover {
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  background-color: transparent;
+  border-radius: 0;
   opacity: 0;
 }
 
-#custom-screenrecording-indicator {
-  min-width: 12px;
-  margin-left: 8.75px;
-  font-size: 10px;
+/* =============================================================================
+   7. CRITICAL / WARNING STATES
+   ========================================================================== */
+#battery.charging,
+#battery.plugged {
+  color: @foreground;
 }
 
-#custom-screenrecording-indicator.active {
-  color: #a55555;
+#battery.critical:not(.charging) {
+  background-color: @foreground;
+  color: @background;
+  animation-name: blink;
+  animation-duration: 0.5s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+#disk.warning {
+  color: @foreground;
+}
+
+#disk.critical {
+  color: @foreground;
+  animation-name: blink;
+  animation-duration: 0.5s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+#temperature.critical {
+  color: @foreground;
+  background-color: alpha(@foreground, 0.14);
+}
+
+@keyframes blink {
+  to {
+    background-color: @foreground;
+    color: @background;
+  }
 }

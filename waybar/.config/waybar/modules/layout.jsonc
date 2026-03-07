@@ -1,0 +1,23 @@
+{
+  "modules-left": [
+    "custom/omarchy",
+    "hyprland/workspaces",
+    "hyprland/window",
+    "mpris",
+    "custom/cava"
+  ],
+  "modules-center": [
+    "clock",
+    "custom/weather",
+    "custom/updatespacman",
+    "custom/update"
+  ],
+  "modules-right": [
+    "group/tray-expander",
+    "idle_inhibitor",
+    "bluetooth",
+    "network",
+    "pulseaudio",
+    "battery"
+  ]
+}
