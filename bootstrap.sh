@@ -5,8 +5,9 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar)
-HOOK_FILES=(autostart.conf bindings.conf input.conf looknfeel.conf monitors.conf)
+PACKAGES=(bash hypr waybar scripts)
+
+HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
 
 err()  { printf 'Error: %s\n' "$*" >&2; }
 info() { printf '[*] %s\n' "$*"; }
@@ -20,21 +21,22 @@ Stows:
   ~/.config/hypr/hypridle.conf
   ~/.config/hypr/hyprsunset.conf
   ~/.config/hypr/custom/*.conf
-  ~/.config/waybar/*
+  ~/.config/waybar/config.jsonc
+  ~/.config/waybar/style.css
+  ~/.local/bin/*
 
-Also ensures managed hook blocks exist in:
-  ~/.config/hypr/autostart.conf
-  ~/.config/hypr/bindings.conf
-  ~/.config/hypr/input.conf
-  ~/.config/hypr/looknfeel.conf
-  ~/.config/hypr/monitors.conf
+Also ensures one managed hook block exists in:
+  ~/.config/hypr/hyprland.conf
+
+Managed hook block:
+  source = ~/.config/hypr/custom/*
 
 Modes:
-  --apply     Restow packages and ensure hook blocks
-  --dry-run   Preview stow changes and hook updates only
+  --apply     Restow packages and ensure hook block
+  --dry-run   Preview stow changes and hook update only
   --install   One-time setup: back up conflicting target files, then apply
   --check     Check whether stow would succeed
-  --uninstall Remove stowed symlinks and managed hook blocks
+  --uninstall Remove stowed symlinks and managed hook block
 USAGE
 }
 
@@ -72,7 +74,20 @@ ensure_dirs() {
   mkdir -p \
     "$HOME/.config/hypr" \
     "$HOME/.config/hypr/custom" \
-    "$HOME/.config/waybar"
+    "$HOME/.config/waybar" \
+    "$HOME/.local/bin"
+}
+
+ensure_script_permissions() {
+  local bindir="$DOTFILES_DIR/scripts/.local/bin"
+  [[ -d "$bindir" ]] || return 0
+
+  local script target
+  while IFS= read -r -d '' script; do
+    chmod +x "$script"
+    target="$HOME/.local/bin/$(basename "$script")"
+    [[ -e "$target" ]] && chmod +x "$target"
+  done < <(find "$bindir" -maxdepth 1 -type f -print0)
 }
 
 collect_package_files() {
@@ -141,11 +156,10 @@ backup_conflicting_targets() {
   fi
 }
 
-hook_block_for() {
-  local target_name="$1"
-  cat <<EOF
+hook_block() {
+  cat <<'EOF'
 # >>> dotfiles-managed custom hooks >>>
-source = ~/.config/hypr/custom/$target_name
+source = ~/.config/hypr/custom/*
 # <<< dotfiles-managed custom hooks <<<
 EOF
 }
@@ -212,25 +226,16 @@ preview_hook_action() {
 }
 
 ensure_hooks() {
-  local name
-  for name in "${HOOK_FILES[@]}"; do
-    ensure_hook_block_in_file "$HOME/.config/hypr/$name" "$(hook_block_for "$name")"
-  done
+  ensure_hook_block_in_file "$HYPR_ROOT_CONF" "$(hook_block)"
 }
 
 preview_hooks() {
-  local name
-  for name in "${HOOK_FILES[@]}"; do
-    preview_hook_action "$HOME/.config/hypr/$name" "$(hook_block_for "$name")"
-  done
+  preview_hook_action "$HYPR_ROOT_CONF" "$(hook_block)"
 }
 
 remove_hooks() {
-  local name
-  for name in "${HOOK_FILES[@]}"; do
-    remove_hook_block_from_file "$HOME/.config/hypr/$name"
-  done
-  info "Removed managed hook blocks from Omarchy Hypr files"
+  remove_hook_block_from_file "$HYPR_ROOT_CONF"
+  info "Removed managed hook block from $HYPR_ROOT_CONF"
 }
 
 printf 'Mode    : %s\n' "$MODE"
@@ -244,7 +249,7 @@ case "$MODE" in
     ensure_dirs
     info "Preview stow:"
     run_stow -n -R "${PACKAGES[@]}"
-    info "Preview hook updates:"
+    info "Preview hook update:"
     preview_hooks
     ;;
   check)
@@ -261,20 +266,22 @@ case "$MODE" in
     backup_conflicting_targets
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
-    info "Apply hook updates:"
+    ensure_script_permissions
+    info "Apply hook update:"
     ensure_hooks
     ;;
   apply)
     ensure_dirs
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
-    info "Apply hook updates:"
+    ensure_script_permissions
+    info "Apply hook update:"
     ensure_hooks
     ;;
   uninstall)
     info "Remove stow symlinks:"
     run_stow -D "${PACKAGES[@]}"
-    info "Remove hook updates:"
+    info "Remove hook update:"
     remove_hooks
     ;;
   *)
