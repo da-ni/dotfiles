@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 PLAYERCTL_BIN="playerctl"
+MAX_MEDIA_LEN=42
+FIELD_SEP=$'\x1f'
 
 declare -A PLAYER_ICONS=(
   [default]="󰓇"
@@ -36,6 +38,26 @@ format_us() {
   fi
 }
 
+truncate_text() {
+  local text="$1"
+  local max_len="$2"
+
+  if [[ ! "$max_len" =~ ^[0-9]+$ ]] || (( max_len <= 0 )); then
+    printf '%s' "$text"
+    return
+  fi
+
+  if (( ${#text} > max_len )); then
+    if (( max_len > 3 )); then
+      printf '%s...' "${text:0:max_len-3}"
+    else
+      printf '%s' "${text:0:max_len}"
+    fi
+  else
+    printf '%s' "$text"
+  fi
+}
+
 json_payload() {
   TEXT="$1" TOOLTIP="$2" CLASS_NAME="$3" python3 - <<'PY'
 import json, os
@@ -54,7 +76,7 @@ pick_active_line() {
 
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
-    IFS=$'\t' read -r player status _ <<<"$line"
+    IFS="$FIELD_SEP" read -r player status _ <<<"$line"
     if [[ "$status" == "Playing" ]]; then
       printf '%s\n' "$line"
       return 0
@@ -79,14 +101,14 @@ while true; do
     payload=$(json_payload "" "playerctl not installed" "disconnected")
     sleep_for=5
   else
-    raw=$($PLAYERCTL_BIN --all-players metadata --format $'{{playerName}}\t{{status}}\t{{artist}}\t{{title}}\t{{album}}\t{{position}}\t{{mpris:length}}' 2>/dev/null || true)
+    raw=$($PLAYERCTL_BIN --all-players metadata --format "{{playerName}}${FIELD_SEP}{{status}}${FIELD_SEP}{{artist}}${FIELD_SEP}{{title}}${FIELD_SEP}{{album}}${FIELD_SEP}{{position}}${FIELD_SEP}{{mpris:length}}" 2>/dev/null || true)
     active_line=$(pick_active_line "$raw" || true)
 
     if [[ -z "$active_line" ]]; then
       payload=$(json_payload "" "" "disconnected")
       sleep_for=3
     else
-      IFS=$'\t' read -r player status artist title album position_us length_us <<<"$active_line"
+      IFS="$FIELD_SEP" read -r player status artist title album position_us length_us <<<"$active_line"
 
       status_lc="${status,,}"
       player_lc="${player,,}"
@@ -112,7 +134,7 @@ while true; do
 
       case "$status_lc" in
         playing)
-          text="$player_icon $media_text"
+          text="$player_icon $(truncate_text "$media_text" "$MAX_MEDIA_LEN")"
           tooltip="$title"
           [[ -n "$meta_line" ]] && tooltip+=$'\n'"$meta_line"
           tooltip+=$'\n'"$pos_fmt/$len_fmt"
@@ -120,7 +142,7 @@ while true; do
           sleep_for=1
           ;;
         paused)
-          text="$status_icon $media_text"
+          text="$status_icon $(truncate_text "$media_text" "$MAX_MEDIA_LEN")"
           tooltip="$title"
           [[ -n "$meta_line" ]] && tooltip+=$'\n'"$meta_line"
           tooltip+=$'\n'"Paused ($pos_fmt/$len_fmt)"
