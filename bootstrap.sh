@@ -13,7 +13,7 @@ info() { printf '[*] %s\n' "$*"; }
 
 usage() {
   cat <<'USAGE'
-Usage: bootstrap.sh [--dry-run|--apply|--check|--uninstall]
+Usage: bootstrap.sh [--dry-run|--apply|--install|--check|--uninstall]
 
 Stows:
   ~/.bashrc
@@ -30,8 +30,9 @@ Also ensures managed hook blocks exist in:
   ~/.config/hypr/monitors.conf
 
 Modes:
-  --apply     Restow packages and ensure hook blocks (default)
+  --apply     Restow packages and ensure hook blocks
   --dry-run   Preview stow changes and hook updates only
+  --install   One-time setup: back up conflicting target files, then apply
   --check     Check whether stow would succeed
   --uninstall Remove stowed symlinks and managed hook blocks
 USAGE
@@ -41,6 +42,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run)   MODE="dry-run"; shift ;;
     --apply)     MODE="apply"; shift ;;
+    --install)   MODE="install"; shift ;;
     --check)     MODE="check"; shift ;;
     --uninstall) MODE="uninstall"; shift ;;
     -h|--help)   usage; exit 0 ;;
@@ -71,6 +73,72 @@ ensure_dirs() {
     "$HOME/.config/hypr" \
     "$HOME/.config/hypr/custom" \
     "$HOME/.config/waybar"
+}
+
+collect_package_files() {
+  local pkg pkgdir
+  for pkg in "${PACKAGES[@]}"; do
+    pkgdir="$DOTFILES_DIR/$pkg"
+    (
+      cd "$pkgdir"
+      find . \( -type f -o -type l \) -print0
+    )
+  done
+}
+
+target_for_relpath() {
+  local rel="$1"
+  printf '%s/%s\n' "$HOME" "${rel#./}"
+}
+
+source_for_relpath() {
+  local pkg="$1"
+  local rel="$2"
+  printf '%s/%s/%s\n' "$DOTFILES_DIR" "$pkg" "${rel#./}"
+}
+
+backup_conflicting_targets() {
+  local backup_dir="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
+  local moved=0
+
+  while IFS= read -r -d '' rel; do
+    local owner_pkg=""
+    local pkg
+    for pkg in "${PACKAGES[@]}"; do
+      if [[ -e "$DOTFILES_DIR/$pkg/${rel#./}" || -L "$DOTFILES_DIR/$pkg/${rel#./}" ]]; then
+        owner_pkg="$pkg"
+        break
+      fi
+    done
+    [[ -n "$owner_pkg" ]] || continue
+
+    local target source resolved=""
+    target="$(target_for_relpath "$rel")"
+    source="$(source_for_relpath "$owner_pkg" "$rel")"
+
+    [[ -e "$target" || -L "$target" ]] || continue
+
+    if [[ -L "$target" ]]; then
+      resolved="$(readlink -f -- "$target" || true)"
+      if [[ "$resolved" == "$(readlink -f -- "$source")" ]]; then
+        continue
+      fi
+    fi
+
+    if (( moved == 0 )); then
+      mkdir -p "$backup_dir"
+      info "Backing up conflicting files to $backup_dir"
+    fi
+
+    mkdir -p "$backup_dir/$(dirname "${rel#./}")"
+    mv -- "$target" "$backup_dir/${rel#./}"
+    info "Moved: $target -> $backup_dir/${rel#./}"
+    moved=1
+  done < <(collect_package_files | sort -zu)
+
+  if (( moved == 0 )); then
+    info "No conflicting target files to back up."
+  fi
 }
 
 hook_block_for() {
@@ -144,18 +212,16 @@ preview_hook_action() {
 }
 
 ensure_hooks() {
-  local name file
+  local name
   for name in "${HOOK_FILES[@]}"; do
-    file="$HOME/.config/hypr/$name"
-    ensure_hook_block_in_file "$file" "$(hook_block_for "$name")"
+    ensure_hook_block_in_file "$HOME/.config/hypr/$name" "$(hook_block_for "$name")"
   done
 }
 
 preview_hooks() {
-  local name file
+  local name
   for name in "${HOOK_FILES[@]}"; do
-    file="$HOME/.config/hypr/$name"
-    preview_hook_action "$file" "$(hook_block_for "$name")"
+    preview_hook_action "$HOME/.config/hypr/$name" "$(hook_block_for "$name")"
   done
 }
 
@@ -188,6 +254,15 @@ case "$MODE" in
       err "Stow check failed."
       exit 2
     fi
+    ;;
+  install)
+    ensure_dirs
+    info "Backing up conflicting target files:"
+    backup_conflicting_targets
+    info "Apply stow:"
+    run_stow -R "${PACKAGES[@]}"
+    info "Apply hook updates:"
+    ensure_hooks
     ;;
   apply)
     ensure_dirs
