@@ -35,11 +35,5 @@
     "format": "{}",
     "tooltip-format": "Network Speed\nClick to open network manager",
     "on-click": "ghostty --class=Impala -e impala"
-  },
-  "custom/gpu": {
-    "exec": "~/.config/waybar/waybar-gpu.sh",
-    "interval": 5,
-    "return-type": "json",
-    "tooltip": true
   }
 }
