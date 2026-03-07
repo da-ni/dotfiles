@@ -2,72 +2,84 @@
 
 Personal dotfiles for a unified Omarchy setup across devices.
 
-This repo follows a hybrid approach:
+This repo uses a hybrid approach:
 
-1. Own selected files directly via GNU Stow (bash, waybar, Hypr custom files, scripts).
-2. Extend Omarchy-managed Hypr files by appending managed `source` hook blocks, instead of replacing Omarchy defaults.
+1. Own selected files directly via GNU Stow (`bash`, `hypr`, `waybar`, `scripts`).
+2. Extend Omarchy-managed Hypr config by appending a managed `source` block to `~/.config/hypr/hyprland.conf`.
 
 This keeps Omarchy update-friendly while still allowing deep customization.
 
-## What This Repo Manages
+## What this repo manages
 
 ### Stowed files
 
 - `~/.bashrc`
 - `~/.config/hypr/hypridle.conf`
 - `~/.config/hypr/hyprsunset.conf`
-- `~/.config/hypr/custom/*.conf`
-- `~/.config/waybar/*`
+- `~/.config/hypr/custom/autostart.conf`
+- `~/.config/hypr/custom/bindings.conf`
+- `~/.config/hypr/custom/input.conf`
+- `~/.config/hypr/custom/looknfeel.conf`
+- `~/.config/hypr/custom/monitors.conf`
+- `~/.config/waybar/config.jsonc`
+- `~/.config/waybar/style.css`
+- `~/.config/waybar/modules/*.jsonc`
+- `~/.config/waybar/cava.sh`
+- `~/.config/waybar/net_speed.sh`
+- `~/.config/waybar/waybar-gpu.sh`
 - `~/.local/bin/toggle-mirror.sh`
 
-### Omarchy hook injection targets
+### Omarchy hook injection target
 
-`bootstrap.sh` ensures a managed block exists in:
+`bootstrap.sh` ensures exactly one managed block exists in:
 
-- `~/.config/hypr/autostart.conf`
-- `~/.config/hypr/bindings.conf`
-- `~/.config/hypr/input.conf`
-- `~/.config/hypr/looknfeel.conf`
-- `~/.config/hypr/monitors.conf`
+- `~/.config/hypr/hyprland.conf`
 
-Each block sources your corresponding custom file in `~/.config/hypr/custom/`.
+Managed block:
+
+```ini
+# >>> dotfiles-managed custom hooks >>>
+source = ~/.config/hypr/custom/*
+# <<< dotfiles-managed custom hooks <<<
+```
+
+Before adding, `bootstrap.sh` removes any previous managed block so repeated runs stay idempotent.
+
+If `~/.config/hypr/hyprland.conf` is missing, bootstrap exits with guidance to restore it via Omarchy (`Update > Config`).
 
 ## Prerequisites
 
+Required:
+
 - Omarchy
-- `stow` (GNU Stow)
+- `stow`
+- `python3`
 
-Optional/runtime tools used by configured components:
+Optional/runtime tools used by some configured modules/scripts:
 
-## Installation and Usage
+- `hyprctl`, `jq`, `notify-send` (`toggle-mirror.sh`)
+- `flock` (optional lock for concurrent toggle protection)
+- `cava`, `playerctl` (Waybar spectrum module)
+- `wttrbar`, `curl` (weather module)
+- `nvidia-smi` (GPU module; degrades gracefully if missing)
+- `bc`, `ip` (network speed module)
+
+## Installation and usage
 
 From repo root:
 
 ```bash
 ./bootstrap.sh --dry-run
+./bootstrap.sh --apply
 ```
 
 ### Modes
 
-- `--apply` (default): preview, then stow, then apply hook updates
-- `--dry-run`: preview only
-- `--install`: back up conflicting files, then apply
-- `--check`: list stow conflicts only (exit code `2` if conflicts exist)
-- `--uninstall`: unstow managed files and remove managed hook blocks
-
-## How the Hook Strategy Works
-
-Omarchy continues owning its base files (for safer updates), while this repo appends a managed section like:
-
-```ini
-# >>> dotfiles-managed custom hooks >>>
-source = ~/.config/hypr/custom/<name>.conf
-# <<< dotfiles-managed custom hooks <<<
-```
-
-Before adding, `bootstrap.sh` removes any previous managed block, so repeated runs stay idempotent.
-
-If target Omarchy files are missing, bootstrap exits with guidance to restore them via Omarchy (`Update > Config`).
+- `--apply` (default): stow packages, ensure script execute bits, then apply Hypr hook block
+- `--dry-run`: preview stow changes and print hook block action
+- `--install`: back up conflicting target files to `~/.dotfiles-backup-<timestamp>/`, then apply
+- `--check`: stow conflict check only (exit code `2` on conflict)
+- `--uninstall`: unstow managed files and remove managed hook block from `hyprland.conf`
 
 ## Updating
 
@@ -77,4 +89,4 @@ When you change files in this repo, rerun:
 ./bootstrap.sh --apply
 ```
 
-That reapplies symlinks and refreshes managed hook blocks safely.
+That reapplies symlinks, refreshes the managed hook block, and re-applies script permissions.
