@@ -19,13 +19,13 @@
   font-size: 11px;
   font-weight: bold;
   border: none;
-  border-radius: 20px;
+  border-radius: 6px;
   min-height: 0;
 }
 
 tooltip {
   background: @dark-bg;
-  border-radius: 15px;
+  border-radius: 6px;
   border: 1px solid @card-border-strong;
 }
 
@@ -38,7 +38,7 @@ window#waybar {
   background-color: transparent;
   transition-property: background-color;
   transition-duration: .5s;
-  margin: 4px;
+  margin: 6px;
 }
 
 window#waybar.hidden {
@@ -60,7 +60,7 @@ window#waybar.hidden {
   border: 1px solid @card-border;
   margin: 1px 2px;
   padding: 0 6px;
-  border-radius: 20px;
+  border-radius: 6px;
   opacity: 1;
 }
 
@@ -71,7 +71,7 @@ window#waybar.hidden {
   margin: 1px 2px;
   padding: 0;
   min-width: 24px;
-  border-radius: 20px;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
@@ -129,7 +129,7 @@ window#waybar.hidden {
   color: @foreground;
   margin: 1px 2px;
   padding: 0 12px;
-  border-radius: 20px;
+  border-radius: 6px;
   opacity: 1;
   padding: 0 10px;
   transition: all 0.2s ease;
