@@ -9,6 +9,12 @@ This repo uses a hybrid approach:
 
 This keeps Omarchy update-friendly while still allowing deep customization.
 
+## Docs
+
+Reference notes live in `docs/` for setup tasks we may need again.
+
+- `docs/custom-webapp-icons.md`: Add icons for custom Chromium web apps in Waybar/Hyprland.
+
 ## What this repo manages
 
 ### Stowed files
