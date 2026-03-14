@@ -14,6 +14,7 @@ This keeps Omarchy update-friendly while still allowing deep customization.
 Reference notes live in `docs/` for setup tasks we may need again.
 
 - `docs/custom-webapp-icons.md`: Add icons for custom Chromium web apps in Waybar/Hyprland.
+- `docs/waybar-weather.md`: Weather module behavior and troubleshooting.
 
 ## What this repo manages
 
