@@ -31,7 +31,10 @@ tooltip {
 
 tooltip label {
   color: @foreground;
-  padding: 5px;
+  padding: 8px 10px;
+  font-family: 'JetBrainsMono Nerd Font';
+  font-size: 12px;
+  font-weight: 600;
 }
 
 window#waybar {

@@ -1,10 +1,10 @@
 {
   "custom/weather": {
-    "format": "{}°",
+    "format": "{}",
     "tooltip": true,
     "interval": 300,
-    "exec": "wttrbar --nerd --location \"Vienna,Austria\"",
+    "exec": "~/.config/waybar/weather.sh",
     "return-type": "json",
-    "on-click": "curl -s 'wttr.in/Vienna?format=3' | xargs -I {} notify-send 'Weather' {}"
+    "on-click": "~/.config/waybar/weather.sh --notify"
   }
 }

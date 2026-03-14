@@ -66,7 +66,7 @@ Optional/runtime tools used by some configured modules/scripts:
 - `hyprctl`, `jq`, `notify-send` (`toggle-mirror.sh`)
 - `flock` (optional lock for concurrent toggle protection)
 - `cava`, `playerctl` (Waybar spectrum module)
-- `wttrbar`, `curl` (weather module)
+- `curl`, `jq` (weather module via Open-Meteo)
 - `nvidia-smi` (GPU module; degrades gracefully if missing)
 - `bc`, `ip` (network speed module)
 
