@@ -29,7 +29,7 @@
     ],
     "format": "{icon}",
     "format-wifi": "{icon}",
-    "format-ethernet": "{ifname} 󰀂",
+    "format-ethernet": "󰀂",
     "format-disconnected": "󰖪",
     "tooltip-format-wifi": "{essid} ({frequency} GHz)\nIP: {ipaddr}\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
     "tooltip-format-ethernet": "IP: {ipaddr}\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
