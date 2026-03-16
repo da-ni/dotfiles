@@ -1,0 +1,56 @@
+layout {
+    default_tab_template {
+        children
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+    }
+
+    tab name="Home" focus=true {
+        pane stacked=true {
+            pane name="terminal" expanded=true command="bash" {
+                args "-lc" "cd \"$HOME\" && exec bash"
+                start_suspended false
+            }
+            pane name="opencode" command="oc" {
+                start_suspended true
+            }
+            pane name="helix" command="bash" {
+                args "-lc" "cd \"$HOME\" && if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
+                start_suspended false
+            }
+        }
+    }
+
+    tab name="dotfiles" {
+        pane stacked=true {
+            pane name="terminal" command="bash" {
+                args "-lc" "cd \"$HOME/Documents/dotfiles\" && exec bash"
+                start_suspended false
+            }
+            pane name="opencode" command="oc" {
+                start_suspended true
+            }
+            pane name="helix" expanded=true command="bash" {
+                args "-lc" "cd \"$HOME/Documents/dotfiles\" && if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
+                start_suspended false
+            }
+        }
+    }
+
+    tab name="Vault" {
+        pane stacked=true {
+            pane name="terminal" command="bash" {
+                args "-lc" "cd \"$HOME/Documents/Vaults/work/obsidian-vault\" && exec bash"
+                start_suspended false
+            }
+            pane name="opencode" command="oc" {
+                start_suspended true
+            }
+            pane name="helix" expanded=true command="bash" {
+                args "-lc" "cd \"$HOME/Documents/Vaults/work/obsidian-vault\" && if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
+                start_suspended false
+            }
+        }
+    }
+}

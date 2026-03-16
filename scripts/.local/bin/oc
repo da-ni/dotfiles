@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v opencode >/dev/null 2>&1; then
+  exec opencode
+fi
+
+if [[ -x "$HOME/.opencode/bin/opencode" ]]; then
+  exec "$HOME/.opencode/bin/opencode"
+fi
+
+exec bash

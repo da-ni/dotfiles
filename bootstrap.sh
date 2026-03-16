@@ -5,9 +5,10 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar scripts)
+PACKAGES=(bash hypr waybar scripts zellij omarchy)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
+OMARCHY_THEME_SET_HOOK="$HOME/.config/omarchy/hooks/theme-set"
 
 err()  { printf 'Error: %s\n' "$*" >&2; }
 info() { printf '[*] %s\n' "$*"; }
@@ -26,12 +27,16 @@ Stows:
   ~/.config/waybar/modules/*
   ~/.config/waybar/*.sh
   ~/.local/bin/*
+  ~/.config/zellij/layouts/*.kdl
+  ~/.config/omarchy/themed/zellij.kdl.tpl
 
-Also ensures one managed hook block exists in:
+Also ensures managed hook blocks exist in:
   ~/.config/hypr/hyprland.conf
+  ~/.config/omarchy/hooks/theme-set
 
 Managed hook block:
   source = ~/.config/hypr/custom/*
+  omarchy-zellij-theme-set "$@"
 
 Modes:
   --apply     Restow packages and ensure hook block
@@ -77,7 +82,9 @@ ensure_dirs() {
     "$HOME/.config/hypr" \
     "$HOME/.config/hypr/custom" \
     "$HOME/.config/waybar" \
-    "$HOME/.local/bin"
+    "$HOME/.local/bin" \
+    "$HOME/.config/omarchy/themed" \
+    "$HOME/.config/omarchy/hooks"
 }
 
 ensure_script_permissions() {
@@ -205,6 +212,16 @@ source = ~/.config/hypr/custom/*
 EOF
 }
 
+omarchy_hook_block() {
+  cat <<'EOF'
+# >>> dotfiles-managed omarchy-zellij-theme >>>
+if command -v omarchy-zellij-theme-set >/dev/null 2>&1; then
+  omarchy-zellij-theme-set "$@"
+fi
+# <<< dotfiles-managed omarchy-zellij-theme <<<
+EOF
+}
+
 remove_hook_block_from_file() {
   local file="$1"
   [[ -f "$file" ]] || return 0
@@ -217,6 +234,30 @@ text = path.read_text()
 
 new = re.sub(
     r'\n?# >>> dotfiles-managed custom hooks >>>\n.*?# <<< dotfiles-managed custom hooks <<<\n?',
+    '\n',
+    text,
+    flags=re.S,
+)
+
+new = re.sub(r'\n{3,}', '\n\n', new).rstrip() + '\n'
+
+if new != text:
+    path.write_text(new)
+PY
+}
+
+remove_omarchy_hook_block_from_file() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+
+  python3 - "$file" <<'PY'
+import pathlib, re, sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+
+new = re.sub(
+    r'\n?# >>> dotfiles-managed omarchy-zellij-theme >>>\n.*?# <<< dotfiles-managed omarchy-zellij-theme <<<\n?',
     '\n',
     text,
     flags=re.S,
@@ -248,6 +289,36 @@ ensure_hook_block_in_file() {
   info "Ensured managed hook block in $file"
 }
 
+ensure_omarchy_theme_hook_file() {
+  if [[ ! -f "$OMARCHY_THEME_SET_HOOK" ]]; then
+    {
+      printf '#!/usr/bin/env bash\n'
+      printf 'set -euo pipefail\n'
+      printf '\n'
+    } > "$OMARCHY_THEME_SET_HOOK"
+    chmod +x "$OMARCHY_THEME_SET_HOOK"
+    info "Created Omarchy theme-set hook file at $OMARCHY_THEME_SET_HOOK"
+  fi
+}
+
+ensure_omarchy_hook_block_in_file() {
+  local file="$1"
+  local block="$2"
+
+  if [[ ! -f "$file" ]]; then
+    err "Expected Omarchy hook file does not exist: $file"
+    exit 1
+  fi
+
+  remove_omarchy_hook_block_from_file "$file"
+  {
+    printf '\n'
+    printf '%s\n' "$block"
+  } >> "$file"
+
+  info "Ensured managed Omarchy hook block in $file"
+}
+
 preview_hook_action() {
   local file="$1"
   local block="$2"
@@ -268,15 +339,20 @@ preview_hook_action() {
 
 ensure_hooks() {
   ensure_hook_block_in_file "$HYPR_ROOT_CONF" "$(hook_block)"
+  ensure_omarchy_theme_hook_file
+  ensure_omarchy_hook_block_in_file "$OMARCHY_THEME_SET_HOOK" "$(omarchy_hook_block)"
 }
 
 preview_hooks() {
   preview_hook_action "$HYPR_ROOT_CONF" "$(hook_block)"
+  preview_hook_action "$OMARCHY_THEME_SET_HOOK" "$(omarchy_hook_block)"
 }
 
 remove_hooks() {
   remove_hook_block_from_file "$HYPR_ROOT_CONF"
   info "Removed managed hook block from $HYPR_ROOT_CONF"
+  remove_omarchy_hook_block_from_file "$OMARCHY_THEME_SET_HOOK"
+  info "Removed managed hook block from $OMARCHY_THEME_SET_HOOK"
 }
 
 printf 'Mode    : %s\n' "$MODE"

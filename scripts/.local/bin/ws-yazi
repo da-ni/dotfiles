@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v yazi >/dev/null 2>&1; then
+  printf 'Error: yazi is required but was not found in PATH.\n' >&2
+  exit 1
+fi
+
+if [[ -n "${ZELLIJ:-}" ]]; then
+  if [[ "${1:-}" == "--float" ]]; then
+    exec zellij action new-pane -f -c --name "yazi" --cwd "$PWD" -- yazi
+  fi
+  exec zellij action new-pane -d right -c --name "yazi" --cwd "$PWD" -- yazi
+fi
+
+exec yazi

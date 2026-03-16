@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE_DIR="$HOME/Documents"
+PROJECT_LAYOUT=""
+USE_YAZI=0
+
+SCRIPT_REAL="$(readlink -f -- "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_REAL")" && pwd)"
+DOTFILES_ROOT="$(cd -- "$SCRIPT_DIR/../../.." && pwd)"
+REPO_PROJECT_LAYOUT="$DOTFILES_ROOT/zellij/.config/zellij/layouts/project-stack.kdl"
+HOME_PROJECT_LAYOUT="$HOME/.config/zellij/layouts/project-stack.kdl"
+
+if [[ -f "$REPO_PROJECT_LAYOUT" ]]; then
+  PROJECT_LAYOUT="$REPO_PROJECT_LAYOUT"
+elif [[ -f "$HOME_PROJECT_LAYOUT" ]]; then
+  PROJECT_LAYOUT="$HOME_PROJECT_LAYOUT"
+fi
+
+usage() {
+  cat <<'EOF'
+Usage: ws-add-project [--yazi]
+
+Pick a directory under ~/Documents and open it as a new stacked project tab.
+
+Options:
+  --yazi   Use yazi folder selection instead of fzf
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --yazi)
+      USE_YAZI=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      printf 'Error: unknown argument: %s\n' "$1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ ! -d "$BASE_DIR" ]]; then
+  printf 'Error: base directory not found: %s\n' "$BASE_DIR" >&2
+  exit 1
+fi
+
+if [[ -z "${ZELLIJ:-}" ]]; then
+  printf 'Error: ws-add-project must run inside a zellij session.\n' >&2
+  exit 1
+fi
+
+normalize_path() {
+  local input="$1"
+
+  case "$input" in
+    "")
+      return 1
+      ;;
+    "~"|"~/")
+      printf '%s\n' "$HOME"
+      ;;
+    ~/*)
+      printf '%s\n' "$HOME/${input#~/}"
+      ;;
+    /*)
+      printf '%s\n' "$input"
+      ;;
+    *)
+      printf '%s/%s\n' "$BASE_DIR" "$input"
+      ;;
+  esac
+}
+
+pick_with_fzf() {
+  local candidates selected
+
+  candidates="$({
+    if command -v zoxide >/dev/null 2>&1; then
+      zoxide query --all --list --base-dir "$BASE_DIR" 2>/dev/null || true
+    fi
+    find "$BASE_DIR" -mindepth 1 -maxdepth 3 -type d 2>/dev/null || true
+  } | sort -u)"
+
+  if [[ -z "$candidates" ]]; then
+    return 1
+  fi
+
+  selected="$(printf '%s\n' "$candidates" | fzf --height=70% --layout=reverse --border --prompt='Project > ' --exit-0)"
+  [[ -n "$selected" ]] || return 1
+  printf '%s\n' "$selected"
+}
+
+pick_with_yazi() {
+  local cwd_file selected
+
+  command -v yazi >/dev/null 2>&1 || return 1
+
+  cwd_file="$(mktemp)"
+  yazi "$BASE_DIR" --cwd-file="$cwd_file"
+  selected="$(<"$cwd_file")"
+  rm -f -- "$cwd_file"
+
+  [[ -n "$selected" ]] || return 1
+  printf '%s\n' "$selected"
+}
+
+project_dir=""
+if (( USE_YAZI == 1 )); then
+  project_dir="$(pick_with_yazi || true)"
+elif command -v fzf >/dev/null 2>&1; then
+  project_dir="$(pick_with_fzf || true)"
+elif command -v yazi >/dev/null 2>&1; then
+  project_dir="$(pick_with_yazi || true)"
+fi
+
+if [[ -z "$project_dir" ]]; then
+  printf 'Folder under %s: ' "$BASE_DIR"
+  IFS= read -r manual_input
+  project_dir="$(normalize_path "$manual_input" || true)"
+fi
+
+if [[ -z "$project_dir" || ! -d "$project_dir" ]]; then
+  printf 'No valid project selected.\n' >&2
+  exit 1
+fi
+
+case "$project_dir" in
+  "$BASE_DIR"/*) ;;
+  *)
+    printf 'Error: project must be under %s\n' "$BASE_DIR" >&2
+    exit 1
+    ;;
+esac
+
+project_name="$(basename "$project_dir")"
+tab_name="Project:${project_name}"
+
+existing_tabs="$(zellij action query-tab-names 2>/dev/null || true)"
+if printf '%s\n' "$existing_tabs" | grep -Fxq "$tab_name"; then
+  suffix=2
+  while printf '%s\n' "$existing_tabs" | grep -Fxq "${tab_name}-${suffix}"; do
+    suffix=$((suffix + 1))
+  done
+  tab_name="${tab_name}-${suffix}"
+fi
+
+if [[ -n "$PROJECT_LAYOUT" && -f "$PROJECT_LAYOUT" ]]; then
+  zellij action new-tab --name "$tab_name" --cwd "$project_dir" --layout "$PROJECT_LAYOUT"
+else
+  zellij action new-tab --name "$tab_name" --cwd "$project_dir"
+  zellij action new-pane --stacked --start-suspended --cwd "$project_dir" --name "opencode" -- oc
+  zellij action new-pane --stacked --cwd "$project_dir" --name "helix" -- hx
+fi
+
+zellij action go-to-tab-name "$tab_name"

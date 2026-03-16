@@ -1,0 +1,15 @@
+layout {
+    pane stacked=true {
+        pane name="terminal" expanded=true command="bash" {
+            args "-lc" "cd \"$HOME\" && exec bash"
+            start_suspended false
+        }
+        pane name="opencode" command="oc" {
+            start_suspended true
+        }
+        pane name="helix" command="bash" {
+            args "-lc" "cd \"$HOME\" && if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
+            start_suspended false
+        }
+    }
+}

@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SESSION_NAME="studio"
+LAYOUT_FILE=""
+WS_CONFIG_FILE=""
+HOME_LAYOUT_FILE=""
+PROJECT_LAYOUT_FILE=""
+DOTFILES_DIR="$HOME/Documents/dotfiles"
+VAULT_DIR="$HOME/Documents/Vaults/work/obsidian-vault"
+
+SCRIPT_REAL="$(readlink -f -- "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_REAL")" && pwd)"
+DOTFILES_ROOT="$(cd -- "$SCRIPT_DIR/../../.." && pwd)"
+REPO_LAYOUT_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/studio.kdl"
+REPO_CONFIG_FILE="$DOTFILES_ROOT/zellij/.config/zellij/ws-config.kdl"
+REPO_HOME_LAYOUT_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/home-stack.kdl"
+REPO_PROJECT_LAYOUT_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/project-stack.kdl"
+HOME_LAYOUT_FILE_FALLBACK="$HOME/.config/zellij/layouts/studio.kdl"
+HOME_HOME_LAYOUT_FILE_FALLBACK="$HOME/.config/zellij/layouts/home-stack.kdl"
+HOME_PROJECT_LAYOUT_FILE_FALLBACK="$HOME/.config/zellij/layouts/project-stack.kdl"
+HOME_CONFIG_FILE="$HOME/.config/zellij/ws-config.kdl"
+
+usage() {
+  cat <<'EOF'
+Usage: ws [reset|restart|add|git|yazi|help]
+
+Commands:
+  ws            Start or attach the studio workspace
+  ws reset      Delete studio session and return to shell
+  ws restart    Delete studio session and recreate immediately
+  ws add        Add project tab (same as ws-add-project)
+  ws git        Open floating lazygit (same as ws-lg)
+  ws yazi       Open yazi file manager (side pane in zellij)
+  ws help       Show workspace help popup text
+EOF
+}
+
+if ! command -v zellij >/dev/null 2>&1; then
+  printf 'Error: zellij is required but was not found in PATH.\n' >&2
+  exit 1
+fi
+
+if [[ -f "$REPO_LAYOUT_FILE" ]]; then
+  LAYOUT_FILE="$REPO_LAYOUT_FILE"
+elif [[ -f "$HOME_LAYOUT_FILE_FALLBACK" ]]; then
+  LAYOUT_FILE="$HOME_LAYOUT_FILE_FALLBACK"
+fi
+
+if [[ ! -f "$LAYOUT_FILE" ]]; then
+  printf 'Error: missing layout file: %s\n' "$LAYOUT_FILE" >&2
+  exit 1
+fi
+
+if [[ -f "$REPO_HOME_LAYOUT_FILE" ]]; then
+  HOME_LAYOUT_FILE="$REPO_HOME_LAYOUT_FILE"
+elif [[ -f "$HOME_HOME_LAYOUT_FILE_FALLBACK" ]]; then
+  HOME_LAYOUT_FILE="$HOME_HOME_LAYOUT_FILE_FALLBACK"
+fi
+
+if [[ -f "$REPO_PROJECT_LAYOUT_FILE" ]]; then
+  PROJECT_LAYOUT_FILE="$REPO_PROJECT_LAYOUT_FILE"
+elif [[ -f "$HOME_PROJECT_LAYOUT_FILE_FALLBACK" ]]; then
+  PROJECT_LAYOUT_FILE="$HOME_PROJECT_LAYOUT_FILE_FALLBACK"
+fi
+
+if [[ ! -f "$HOME_LAYOUT_FILE" || ! -f "$PROJECT_LAYOUT_FILE" ]]; then
+  printf 'Error: missing home/project layouts for fixed tabs.\n' >&2
+  exit 1
+fi
+
+if [[ -f "$REPO_CONFIG_FILE" ]]; then
+  WS_CONFIG_FILE="$REPO_CONFIG_FILE"
+elif [[ -f "$HOME_CONFIG_FILE" ]]; then
+  WS_CONFIG_FILE="$HOME_CONFIG_FILE"
+fi
+
+ZELLIJ_CMD=(zellij)
+if [[ -f "$WS_CONFIG_FILE" ]]; then
+  ZELLIJ_CMD+=(--config "$WS_CONFIG_FILE")
+fi
+
+session_exists() {
+  zellij list-sessions -n -s 2>/dev/null | grep -Fxq "$SESSION_NAME"
+}
+
+client_count() {
+  zellij --session "$SESSION_NAME" action list-clients 2>/dev/null | awk 'NR>1 {count++} END {print count+0}'
+}
+
+ensure_fixed_tabs() {
+  local tabs
+  tabs="$(zellij --session "$SESSION_NAME" action query-tab-names 2>/dev/null || true)"
+
+  if ! printf '%s\n' "$tabs" | grep -Fxq "Home"; then
+    zellij --session "$SESSION_NAME" action new-tab --name "Home" --cwd "$HOME" --layout "$HOME_LAYOUT_FILE"
+  fi
+  if ! printf '%s\n' "$tabs" | grep -Fxq "dotfiles"; then
+    zellij --session "$SESSION_NAME" action new-tab --name "dotfiles" --cwd "$DOTFILES_DIR" --layout "$PROJECT_LAYOUT_FILE"
+  fi
+  if ! printf '%s\n' "$tabs" | grep -Fxq "Vault"; then
+    zellij --session "$SESSION_NAME" action new-tab --name "Vault" --cwd "$VAULT_DIR" --layout "$PROJECT_LAYOUT_FILE"
+  fi
+}
+
+start_new_session() {
+  exec "${ZELLIJ_CMD[@]}" --session "$SESSION_NAME" --new-session-with-layout "$LAYOUT_FILE"
+}
+
+reset_session() {
+  if session_exists; then
+    zellij delete-session --force "$SESSION_NAME"
+  fi
+}
+
+restart_session() {
+  reset_session
+  start_new_session
+}
+
+case "${1:-}" in
+  "") ;;
+  add)
+    shift
+    exec ws-add-project "$@"
+    ;;
+  git)
+    shift
+    exec ws-lg "$@"
+    ;;
+  yazi)
+    shift
+    exec ws-yazi "$@"
+    ;;
+  help)
+    shift
+    exec ws-help "$@"
+    ;;
+  reset)
+    shift
+    reset_session
+    exit 0
+    ;;
+  restart)
+    shift
+    restart_session
+    ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    printf 'Error: unknown ws command: %s\n\n' "$1" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
+
+if session_exists; then
+  if [[ "$(client_count)" -eq 0 ]]; then
+    zellij delete-session --force "$SESSION_NAME"
+    start_new_session
+  fi
+
+  ensure_fixed_tabs
+  exec "${ZELLIJ_CMD[@]}" attach "$SESSION_NAME"
+fi
+
+start_new_session

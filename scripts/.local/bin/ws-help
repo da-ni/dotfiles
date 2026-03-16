@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cat <<'EOF'
+Workspace keys
+
+Commands:
+  ws add            Add project tab
+  ws git            Open lazygit in floating pane
+  ws yazi           Open yazi in right-side pane
+  ws reset          Delete studio session and return to shell
+  ws restart        Delete studio session and recreate immediately
+  ws help           Show this help
+
+Navigation:
+  Alt-h/j/k/l       Move focus between panes (left/down/up/right)
+  Alt-[ / Alt-]     Previous/next tab (matches tab-bar hint)
+  Alt-q/w           Previous/next tab
+
+Default Zellij keys:
+  F1               Open yazi in right-side pane
+  F2               Open floating lazygit
+  F12              Open this workspace help popup
+  Ctrl-o then w     Session manager
+  Ctrl-o then c     Configuration/help screen
+  Ctrl-d            Detach from session
+  Ctrl-q            Quit Zellij
+  Ctrl-t then h/l   Previous/next tab
+
+Tip:
+  Run ws-help in any pane when needed.
+  Fixed tabs auto-restore when you run ws.
+  opencode panes start suspended; press Enter in that pane to launch.
+EOF
+
+printf '\nPress Enter to close... '
+IFS= read -r _
