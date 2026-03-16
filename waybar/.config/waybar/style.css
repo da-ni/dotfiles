@@ -4,12 +4,12 @@
 @import "../omarchy/current/theme/waybar.css";
 
 @define-color dark-bg @background;
-@define-color hover-bg alpha(@foreground, 0.16);
+@define-color hover-bg alpha(@foreground, 0.10);
 @define-color muted-fg alpha(@foreground, 0.6);
 @define-color soft-fg alpha(@foreground, 0.85);
-@define-color card-bg alpha(@foreground, 0.06);
-@define-color card-border alpha(@foreground, 0.16);
-@define-color card-border-strong alpha(@foreground, 0.28);
+@define-color card-bg alpha(@foreground, 0.04);
+@define-color card-border alpha(@foreground, 0.12);
+@define-color card-border-strong alpha(@foreground, 0.20);
 
 /* =============================================================================
    2. GLOBAL SETTINGS
@@ -19,7 +19,7 @@
   font-size: 11px;
   font-weight: bold;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   min-height: 0;
 }
 
@@ -41,7 +41,7 @@ window#waybar {
   background-color: transparent;
   transition-property: background-color;
   transition-duration: .5s;
-  margin: 6px;
+  margin: 4px;
 }
 
 window#waybar.hidden {
@@ -52,7 +52,7 @@ window#waybar.hidden {
 .modules-center,
 .modules-right {
   background: transparent;
-  margin: 2px;
+  margin: 1px;
 }
 
 /* =============================================================================
@@ -61,9 +61,9 @@ window#waybar.hidden {
 #workspaces {
   background-color: @card-bg;
   border: 1px solid @card-border;
-  margin: 1px 2px;
-  padding: 0 6px;
-  border-radius: 6px;
+  margin: 1px;
+  padding: 0 5px;
+  border-radius: 5px;
   opacity: 1;
 }
 
@@ -71,10 +71,10 @@ window#waybar.hidden {
   color: @muted-fg;
   background-color: transparent;
   border: 1px solid transparent;
-  margin: 1px 2px;
+  margin: 1px;
   padding: 0;
-  min-width: 24px;
-  border-radius: 6px;
+  min-width: 22px;
+  border-radius: 5px;
   transition: all 0.2s ease;
 }
 
@@ -87,7 +87,7 @@ window#waybar.hidden {
 /* BASE ACTIVE STATE */
 #workspaces button.active {
   color: @background;
-  min-width: 24px;
+  min-width: 22px;
   background-color: @foreground;
   border: 1px solid @card-border-strong;
 }
@@ -127,15 +127,13 @@ window#waybar.hidden {
 #disk,
 #idle_inhibitor {
   background-color: @card-bg;
-  background-image: linear-gradient(180deg, alpha(@foreground, 0.09), alpha(@foreground, 0.03));
   border: 1px solid @card-border;
   color: @foreground;
-  margin: 1px 2px;
-  padding: 0 12px;
-  border-radius: 6px;
+  margin: 1px;
+  padding: 0 9px;
+  border-radius: 5px;
   opacity: 1;
-  padding: 0 10px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 /* =============================================================================
@@ -170,7 +168,7 @@ window#waybar.hidden {
 #idle_inhibitor {
   color: @soft-fg;
 }
-#cava, #custom-cava { padding: 0 12px; }
+#cava, #custom-cava { padding: 0 10px; }
 #custom-cava.hidden {
   padding: 0;
   margin: 0;
