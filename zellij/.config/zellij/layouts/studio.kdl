@@ -6,51 +6,39 @@ layout {
         }
     }
 
-    tab name="Home" focus=true {
+    pane_template name="ws-terminal" command="bash" {
+        args "-lc" "exec bash"
+        start_suspended false
+    }
+
+    pane_template name="ws-opencode" command="oc" {
+        start_suspended true
+    }
+
+    pane_template name="ws-helix" command="bash" {
+        args "-lc" "if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
+        start_suspended false
+    }
+
+    tab name="Home" focus=true cwd="$HOME" {
         pane stacked=true {
-            pane name="terminal" expanded=true command="bash" {
-                args "-lc" "cd \"$HOME\" && exec bash"
-                start_suspended false
-            }
-            pane name="opencode" command="oc" {
-                start_suspended true
-            }
-            pane name="helix" command="bash" {
-                args "-lc" "cd \"$HOME\" && if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
-                start_suspended false
-            }
+            ws-terminal name="terminal" expanded=true
         }
     }
 
-    tab name="dotfiles" {
+    tab name="dotfiles" cwd="$HOME/Documents/dotfiles" {
         pane stacked=true {
-            pane name="terminal" command="bash" {
-                args "-lc" "cd \"$HOME/Documents/dotfiles\" && exec bash"
-                start_suspended false
-            }
-            pane name="opencode" command="oc" {
-                start_suspended true
-            }
-            pane name="helix" expanded=true command="bash" {
-                args "-lc" "cd \"$HOME/Documents/dotfiles\" && if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
-                start_suspended false
-            }
+            ws-terminal name="terminal"
+            ws-helix name="helix" expanded=true
+            ws-opencode name="opencode"
         }
     }
 
-    tab name="Vault" {
+    tab name="Vault" cwd="$HOME/Documents/Vaults/work/obsidian-vault" {
         pane stacked=true {
-            pane name="terminal" command="bash" {
-                args "-lc" "cd \"$HOME/Documents/Vaults/work/obsidian-vault\" && exec bash"
-                start_suspended false
-            }
-            pane name="opencode" command="oc" {
-                start_suspended true
-            }
-            pane name="helix" expanded=true command="bash" {
-                args "-lc" "cd \"$HOME/Documents/Vaults/work/obsidian-vault\" && if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
-                start_suspended false
-            }
+            ws-terminal name="terminal"
+            ws-helix name="helix" expanded=true
+            ws-opencode name="opencode"
         }
     }
 }

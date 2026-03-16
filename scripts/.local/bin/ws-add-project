@@ -4,6 +4,7 @@ set -euo pipefail
 BASE_DIR="$HOME/Documents"
 PROJECT_LAYOUT=""
 USE_YAZI=0
+USE_RECENT=0
 
 SCRIPT_REAL="$(readlink -f -- "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_REAL")" && pwd)"
@@ -19,12 +20,13 @@ fi
 
 usage() {
   cat <<'EOF'
-Usage: ws-add-project [--yazi]
+Usage: ws-add-project [--yazi] [--recent]
 
 Pick a directory under ~/Documents and open it as a new stacked project tab.
 
 Options:
   --yazi   Use yazi folder selection instead of fzf
+  --recent Prefer recent zoxide directories first
 EOF
 }
 
@@ -32,6 +34,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --yazi)
       USE_YAZI=1
+      shift
+      ;;
+    --recent)
+      USE_RECENT=1
       shift
       ;;
     -h|--help)
@@ -111,12 +117,36 @@ pick_with_yazi() {
   printf '%s\n' "$selected"
 }
 
+pick_recent() {
+  local candidates selected first
+
+  command -v zoxide >/dev/null 2>&1 || return 1
+
+  candidates="$(zoxide query --all --list --base-dir "$BASE_DIR" 2>/dev/null | awk '!seen[$0]++' | sed '/^$/d' || true)"
+  [[ -n "$candidates" ]] || return 1
+
+  if command -v fzf >/dev/null 2>&1; then
+    selected="$(printf '%s\n' "$candidates" | fzf --height=70% --layout=reverse --border --prompt='Recent > ' --exit-0)"
+    [[ -n "$selected" ]] || return 1
+    printf '%s\n' "$selected"
+    return 0
+  fi
+
+  first="$(printf '%s\n' "$candidates" | awk 'NR==1 {print; exit}')"
+  [[ -n "$first" ]] || return 1
+  printf '%s\n' "$first"
+}
+
 project_dir=""
-if (( USE_YAZI == 1 )); then
+if (( USE_RECENT == 1 )); then
+  project_dir="$(pick_recent || true)"
+fi
+
+if [[ -z "$project_dir" ]] && (( USE_YAZI == 1 )); then
   project_dir="$(pick_with_yazi || true)"
-elif command -v fzf >/dev/null 2>&1; then
+elif [[ -z "$project_dir" ]] && command -v fzf >/dev/null 2>&1; then
   project_dir="$(pick_with_fzf || true)"
-elif command -v yazi >/dev/null 2>&1; then
+elif [[ -z "$project_dir" ]] && command -v yazi >/dev/null 2>&1; then
   project_dir="$(pick_with_yazi || true)"
 fi
 
@@ -155,8 +185,8 @@ if [[ -n "$PROJECT_LAYOUT" && -f "$PROJECT_LAYOUT" ]]; then
   zellij action new-tab --name "$tab_name" --cwd "$project_dir" --layout "$PROJECT_LAYOUT"
 else
   zellij action new-tab --name "$tab_name" --cwd "$project_dir"
-  zellij action new-pane --stacked --start-suspended --cwd "$project_dir" --name "opencode" -- oc
   zellij action new-pane --stacked --cwd "$project_dir" --name "helix" -- hx
+  zellij action new-pane --stacked --start-suspended --cwd "$project_dir" --name "opencode" -- oc
 fi
 
 zellij action go-to-tab-name "$tab_name"

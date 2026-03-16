@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fallback_cwd="${PWD:-$HOME}"
+
+if [[ -z "${ZELLIJ:-}" ]]; then
+  printf '%s\n' "$fallback_cwd"
+  exit 0
+fi
+
+python3 - <<'PY' || printf '%s\n' "$fallback_cwd"
+import os
+import re
+import subprocess
+import sys
+
+fallback = os.environ.get("PWD") or os.path.expanduser("~")
+
+try:
+    layout = subprocess.check_output(
+        ["zellij", "action", "dump-layout"],
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+except Exception:
+    print(fallback)
+    sys.exit(0)
+
+lines = layout.splitlines()
+
+global_cwd = os.path.expanduser("~")
+for line in lines:
+    match = re.match(r"\s*cwd\s+\"([^\"]+)\"", line)
+    if match:
+        global_cwd = match.group(1)
+        break
+
+focused_tab_indent = None
+in_focused_tab = False
+focused_tab_cwd = ""
+focused_pane_cwd = ""
+
+for line in lines:
+    tab_match = re.match(r"(\s*)tab\b([^\{]*)\{", line)
+    if tab_match:
+        attrs = tab_match.group(2)
+        focused_tab_indent = len(tab_match.group(1))
+        in_focused_tab = "focus=true" in attrs
+        focused_tab_cwd = ""
+        if in_focused_tab:
+            cwd_match = re.search(r'cwd="([^"]+)"', attrs)
+            if cwd_match:
+                focused_tab_cwd = cwd_match.group(1)
+        continue
+
+    if focused_tab_indent is not None and re.match(rf"\s{{0,{focused_tab_indent}}}\}}", line):
+        in_focused_tab = False
+        focused_tab_indent = None
+        continue
+
+    if not in_focused_tab:
+        continue
+
+    pane_match = re.match(r"\s*pane\b([^\{]*)\{", line)
+    if pane_match and "focus=true" in pane_match.group(1):
+        attrs = pane_match.group(1)
+        cwd_match = re.search(r'cwd="([^"]+)"', attrs)
+        if cwd_match:
+            focused_pane_cwd = cwd_match.group(1)
+        break
+
+resolved = focused_pane_cwd or focused_tab_cwd or global_cwd
+if os.path.isabs(resolved):
+    print(resolved)
+else:
+    print(os.path.normpath(os.path.join(global_cwd, resolved)))
+PY

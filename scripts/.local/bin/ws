@@ -23,18 +23,115 @@ HOME_CONFIG_FILE="$HOME/.config/zellij/ws-config.kdl"
 
 usage() {
   cat <<'EOF'
-Usage: ws [reset|restart|add|git|yazi|help]
+Usage: ws [reset|restart|add|git|yazi|doctor|help]
 
 Commands:
   ws            Start or attach the studio workspace
   ws reset      Delete studio session and return to shell
   ws restart    Delete studio session and recreate immediately
   ws add        Add project tab (same as ws-add-project)
-  ws git        Open floating lazygit (same as ws-lg)
+  ws git        Open floating lazygit
   ws yazi       Open yazi file manager (side pane in zellij)
+  ws doctor     Check workspace dependencies and paths
   ws help       Show workspace help popup text
 EOF
 }
+
+open_lazygit() {
+  exec ws-lg "$@"
+}
+
+open_yazi() {
+  exec ws-yazi "$@"
+}
+
+doctor() {
+  local failures=0
+
+  check_bin() {
+    local name="$1"
+    local required="$2"
+    if command -v "$name" >/dev/null 2>&1; then
+      printf '[ok]   command: %s\n' "$name"
+    else
+      if [[ "$required" == "required" ]]; then
+        printf '[fail] command: %s (required)\n' "$name"
+        failures=$((failures + 1))
+      else
+        printf '[warn] command: %s (optional)\n' "$name"
+      fi
+    fi
+  }
+
+  check_dir() {
+    local path="$1"
+    local required="$2"
+    if [[ -d "$path" ]]; then
+      printf '[ok]   dir: %s\n' "$path"
+    else
+      if [[ "$required" == "required" ]]; then
+        printf '[fail] dir: %s (required)\n' "$path"
+        failures=$((failures + 1))
+      else
+        printf '[warn] dir: %s (optional)\n' "$path"
+      fi
+    fi
+  }
+
+  check_file() {
+    local path="$1"
+    local required="$2"
+    if [[ -f "$path" ]]; then
+      printf '[ok]   file: %s\n' "$path"
+    else
+      if [[ "$required" == "required" ]]; then
+        printf '[fail] file: %s (required)\n' "$path"
+        failures=$((failures + 1))
+      else
+        printf '[warn] file: %s (optional)\n' "$path"
+      fi
+    fi
+  }
+
+  printf 'ws doctor\n\n'
+  printf 'Dependencies\n'
+  check_bin zellij required
+  check_bin bash required
+  check_bin hx optional
+  check_bin helix optional
+  check_bin opencode optional
+  check_bin lazygit optional
+  check_bin yazi optional
+  check_bin fzf optional
+  check_bin zoxide optional
+
+  printf '\nWorkspace paths\n'
+  check_dir "$DOTFILES_DIR" required
+  check_dir "$VAULT_DIR" optional
+
+  printf '\nLayouts/config\n'
+  check_file "$REPO_LAYOUT_FILE" optional
+  check_file "$HOME_LAYOUT_FILE_FALLBACK" optional
+  check_file "$REPO_HOME_LAYOUT_FILE" optional
+  check_file "$HOME_HOME_LAYOUT_FILE_FALLBACK" optional
+  check_file "$REPO_PROJECT_LAYOUT_FILE" optional
+  check_file "$HOME_PROJECT_LAYOUT_FILE_FALLBACK" optional
+  check_file "$REPO_CONFIG_FILE" optional
+  check_file "$HOME_CONFIG_FILE" optional
+
+  if (( failures > 0 )); then
+    printf '\nResult: %d required check(s) failed.\n' "$failures" >&2
+    return 1
+  fi
+
+  printf '\nResult: ok\n'
+}
+
+if [[ "${1:-}" == "doctor" ]]; then
+  shift
+  doctor "$@"
+  exit $?
+fi
 
 if ! command -v zellij >/dev/null 2>&1; then
   printf 'Error: zellij is required but was not found in PATH.\n' >&2
@@ -126,11 +223,11 @@ case "${1:-}" in
     ;;
   git)
     shift
-    exec ws-lg "$@"
+    open_lazygit "$@"
     ;;
   yazi)
     shift
-    exec ws-yazi "$@"
+    open_yazi "$@"
     ;;
   help)
     shift

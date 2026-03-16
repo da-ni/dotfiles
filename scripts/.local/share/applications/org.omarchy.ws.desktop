@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Workspace
+Comment=Open Zellij workspace session
+Exec=omarchy-launch-or-focus-tui ws
+Icon=zellij
+Terminal=false
+NoDisplay=true

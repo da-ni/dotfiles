@@ -1,6 +1,8 @@
 theme "ws-catppuccin"
 pane_frames true
 simplified_ui false
+session_serialization true
+show_startup_tips false
 
 ui {
     pane_frames {
@@ -149,25 +151,40 @@ keybinds {
                 y "20%"
             };
         }
-        bind "F2" {
-            Run "lazygit" {
-                floating true
-                close_on_exit true
-                width "88%"
-                height "88%"
-                x "6%"
-                y "6%"
-            };
-        }
-        bind "F1" {
-            Run "ws-yazi" {
-                close_on_exit true
-            };
-        }
         bind "Alt [" { GoToPreviousTab; }
         bind "Alt ]" { GoToNextTab; }
-        bind "Alt q" { GoToPreviousTab; }
-        bind "Alt w" { GoToNextTab; }
+        bind "Alt q" {
+            Run "ws-yazi" {
+                floating true
+                close_on_exit true
+                width "92%"
+                height "90%"
+                x "4%"
+                y "5%"
+            };
+        }
+        bind "Alt w" {
+            Run "ws-lg" {
+                floating true
+                close_on_exit true
+                width "92%"
+                height "90%"
+                x "4%"
+                y "5%"
+            };
+        }
+    }
+
+    shared_except "session" "locked" {
+        unbind "Ctrl o"
+    }
+
+    shared_except "pane" "locked" {
+        unbind "Ctrl p"
+    }
+
+    shared_except "tab" "locked" {
+        unbind "Ctrl t"
     }
 
     tab {

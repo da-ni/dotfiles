@@ -6,8 +6,10 @@ Workspace keys
 
 Commands:
   ws add            Add project tab
+  ws add --recent   Add project tab from recent zoxide dirs
   ws git            Open lazygit in floating pane
-  ws yazi           Open yazi in right-side pane
+  ws yazi           Open yazi in floating pane
+  ws doctor         Check workspace dependencies and paths
   ws reset          Delete studio session and return to shell
   ws restart        Delete studio session and recreate immediately
   ws help           Show this help
@@ -15,17 +17,15 @@ Commands:
 Navigation:
   Alt-h/j/k/l       Move focus between panes (left/down/up/right)
   Alt-[ / Alt-]     Previous/next tab (matches tab-bar hint)
-  Alt-q/w           Previous/next tab
+  Alt-q             Open yazi in floating pane
+  Alt-w             Open lazygit in floating pane
 
-Default Zellij keys:
-  F1               Open yazi in right-side pane
-  F2               Open floating lazygit
+Core Zellij keys:
+  Ctrl-n            Enter/exit resize mode
+  h/j/k/l, +/-      Resize focused pane (in resize mode)
   F12              Open this workspace help popup
-  Ctrl-o then w     Session manager
-  Ctrl-o then c     Configuration/help screen
   Ctrl-d            Detach from session
   Ctrl-q            Quit Zellij
-  Ctrl-t then h/l   Previous/next tab
 
 Tip:
   Run ws-help in any pane when needed.

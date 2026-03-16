@@ -4,7 +4,7 @@ Personal dotfiles for a unified Omarchy setup across devices.
 
 This repo uses a hybrid approach:
 
-1. Own selected files directly via GNU Stow (`bash`, `hypr`, `waybar`, `scripts`, `zellij`, `omarchy`).
+1. Own selected files directly via GNU Stow (`bash`, `hypr`, `waybar`, `scripts`, `zellij`, `omarchy`, `ghostty`).
 2. Extend Omarchy-managed Hypr config by appending a managed `source` block to `~/.config/hypr/hyprland.conf`.
 
 This keeps Omarchy update-friendly while still allowing deep customization.
@@ -35,11 +35,11 @@ Reference notes live in `docs/` for setup tasks we may need again.
 - `~/.config/waybar/cava.sh`
 - `~/.config/waybar/net_speed.sh`
 - `~/.config/waybar/waybar-gpu.sh`
+- `~/.config/ghostty/config`
 - `~/.local/bin/toggle-mirror.sh`
 - `~/.local/bin/ws`
 - `~/.local/bin/ws-add-project`
 - `~/.local/bin/ws-help`
-- `~/.local/bin/ws-lg`
 - `~/.local/bin/omarchy-zellij-theme-set`
 - `~/.config/zellij/ws-config.kdl`
 - `~/.config/zellij/layouts/home-stack.kdl`
@@ -94,7 +94,7 @@ Optional/runtime tools used by some configured modules/scripts:
 - `bc`, `ip` (network speed module)
 - `opencode` (AI pane in terminal workspace)
 - `zoxide`, `fzf` (project picker)
-- `lazygit` (`ws-lg` floating git UI)
+- `lazygit` (`ws git` and `Alt-w` floating git UI)
 - `yazi` (optional folder picker mode for `ws-add-project --yazi`)
 
 ## Installation and usage

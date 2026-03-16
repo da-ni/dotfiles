@@ -16,7 +16,7 @@ On attach, `ws` ensures fixed tabs (`Home`, `dotfiles`, `Vault`) exist.
 
 ## Default tabs
 
-- `Home`: stacked `terminal`, `opencode` (press Enter to launch), `helix` (terminal focused by default)
+- `Home`: `terminal` only
 - `dotfiles`: stack rooted at `~/Documents/dotfiles` (helix focused)
 - `Vault`: stack rooted at `~/Documents/Vaults/work/obsidian-vault` (helix focused)
 
@@ -38,11 +38,17 @@ Optional yazi picker mode:
 ws add --yazi
 ```
 
+Prefer recent zoxide projects first:
+
+```bash
+ws add --recent
+```
+
 Each new project tab uses a stacked layout with:
 
 - `terminal`
-- `opencode` (starts suspended; press Enter in that pane to launch)
 - `helix` (expanded by default)
+- `opencode` (starts suspended; press Enter in that pane to launch)
 
 ## Lazygit (floating)
 
@@ -54,7 +60,7 @@ ws git
 
 This opens lazygit in a floating pane tied to the current tab directory.
 
-Fast key: `F2`.
+Fast key: `Alt-w`.
 
 ## Yazi file manager
 
@@ -64,29 +70,26 @@ From any pane in `ws`, run:
 ws yazi
 ```
 
-This opens yazi in a right-side pane and closes it when you quit yazi.
+This opens yazi in a floating pane tied to the current tab directory.
 
-Optional floating mode:
+Optional explicit floating mode (same behavior):
 
 ```bash
 ws yazi --float
 ```
 
-Fast key: `F1`.
+Fast key: `Alt-q` (floating).
 
 ## Useful built-in zellij keys
 
 - `Alt h/j/k/l`: move focus between panes
 - `Alt [` / `Alt ]`: previous/next tab (matches tab-bar hint)
-- `Alt q/w`: previous/next tab
-- `F1`: open yazi side pane
-- `F2`: open floating lazygit
+- `Alt q`: open floating yazi
+- `Alt w`: open floating lazygit
+- `Ctrl n`: enter/exit resize mode
+- `h/j/k/l`, `+/-`: resize focused pane while in resize mode
 - `F12`: open workspace help popup (`ws-help`)
-- `Ctrl o` then `w`: session manager
-- `Ctrl o` then `c`: configuration/help screen
-- `Ctrl p` then `w`: toggle floating panes
 - `Alt n`: new pane
-- `Ctrl t` then `h/l`: previous/next tab
 - `Ctrl d`: detach from session
 - `Ctrl q`: quit zellij
 
@@ -94,7 +97,8 @@ Workspace command shortcuts:
 
 - `ws add`: add project tab
 - `ws git`: open floating lazygit
-- `ws yazi`: open yazi side pane
+- `ws yazi`: open floating yazi
+- `ws doctor`: validate workspace dependencies and paths
 - `ws reset`: delete `studio` and return to shell
 - `ws restart`: delete and recreate `studio` immediately
 
@@ -103,6 +107,7 @@ Workspace command shortcuts:
 - `yazi` is optional. If not installed, `ws add` still works via `fzf` or manual path.
 - Project selection is intentionally scoped to `~/Documents` for now.
 - Omarchy theme changes auto-sync into Zellij via `omarchy-zellij-theme-set` hook integration.
+- Floating tool panes show contextual titles like `yazi:<dir>` and `lazygit:<dir>`.
 
 If fixed tabs ever disappear, run:
 

@@ -5,7 +5,7 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar scripts zellij omarchy)
+PACKAGES=(bash hypr waybar scripts zellij omarchy ghostty)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
 OMARCHY_THEME_SET_HOOK="$HOME/.config/omarchy/hooks/theme-set"
@@ -26,6 +26,7 @@ Stows:
   ~/.config/waybar/style.css
   ~/.config/waybar/modules/*
   ~/.config/waybar/*.sh
+  ~/.config/ghostty/config
   ~/.local/bin/*
   ~/.config/zellij/layouts/*.kdl
   ~/.config/omarchy/themed/zellij.kdl.tpl
