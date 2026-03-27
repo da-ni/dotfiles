@@ -1,0 +1,36 @@
+tab_template name="ws-swap-tab" {
+    children
+    pane size=1 borderless=true {
+        plugin location="zellij:tab-bar"
+    }
+}
+
+swap_tiled_layout name="SPLIT" {
+    tab exact_panes=3 {
+        pane split_direction="horizontal" {
+            pane size="67%" split_direction="vertical" {
+                pane name="helix" command="bash" {
+                    args "-lc" "if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
+                }
+                pane name="terminal" size="25%" command="bash" {
+                    args "-lc" "exec bash"
+                }
+            }
+            pane name="opencode" size="33%" command="oc"
+        }
+    }
+
+    ws-swap-tab exact_panes=4 {
+        pane split_direction="horizontal" {
+            pane size="67%" split_direction="vertical" {
+                pane name="helix" command="bash" {
+                    args "-lc" "if command -v hx >/dev/null 2>&1; then exec hx; elif command -v helix >/dev/null 2>&1; then exec helix; else exec bash; fi"
+                }
+                pane name="terminal" size="25%" command="bash" {
+                    args "-lc" "exec bash"
+                }
+            }
+            pane name="opencode" size="33%" command="oc"
+        }
+    }
+}

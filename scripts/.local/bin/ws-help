@@ -16,7 +16,7 @@ Commands:
 
 Navigation:
   Alt-h/j/k/l       Move focus between panes (left/down/up/right)
-  Alt-[ / Alt-]     Previous/next tab (matches tab-bar hint)
+  Alt-[ / Alt-]     Previous/next swap layout (BASE <-> SPLIT)
   Alt-q             Open yazi in floating pane
   Alt-w             Open lazygit in floating pane
 
@@ -30,6 +30,7 @@ Core Zellij keys:
 Tip:
   Run ws-help in any pane when needed.
   Fixed tabs auto-restore when you run ws.
+  Use Alt-[ / Alt-] to switch between BASE and SPLIT layouts.
   opencode panes start suspended; press Enter in that pane to launch.
 EOF
 

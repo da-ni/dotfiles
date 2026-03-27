@@ -12,13 +12,19 @@ VAULT_DIR="$HOME/Documents/Vaults/work/obsidian-vault"
 SCRIPT_REAL="$(readlink -f -- "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_REAL")" && pwd)"
 DOTFILES_ROOT="$(cd -- "$SCRIPT_DIR/../../.." && pwd)"
+
 REPO_LAYOUT_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/studio.kdl"
+REPO_LAYOUT_SWAP_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/studio.swap.kdl"
 REPO_CONFIG_FILE="$DOTFILES_ROOT/zellij/.config/zellij/ws-config.kdl"
 REPO_HOME_LAYOUT_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/home-stack.kdl"
 REPO_PROJECT_LAYOUT_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/project-stack.kdl"
+REPO_PROJECT_SWAP_FILE="$DOTFILES_ROOT/zellij/.config/zellij/layouts/project-stack.swap.kdl"
+
 HOME_LAYOUT_FILE_FALLBACK="$HOME/.config/zellij/layouts/studio.kdl"
+HOME_LAYOUT_SWAP_FILE_FALLBACK="$HOME/.config/zellij/layouts/studio.swap.kdl"
 HOME_HOME_LAYOUT_FILE_FALLBACK="$HOME/.config/zellij/layouts/home-stack.kdl"
 HOME_PROJECT_LAYOUT_FILE_FALLBACK="$HOME/.config/zellij/layouts/project-stack.kdl"
+HOME_PROJECT_SWAP_FILE_FALLBACK="$HOME/.config/zellij/layouts/project-stack.swap.kdl"
 HOME_CONFIG_FILE="$HOME/.config/zellij/ws-config.kdl"
 
 usage() {
@@ -35,6 +41,19 @@ Commands:
   ws doctor     Check workspace dependencies and paths
   ws help       Show workspace help popup text
 EOF
+}
+
+pick_first_file() {
+  local candidate
+
+  for candidate in "$@"; do
+    if [[ -f "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 open_lazygit() {
@@ -111,11 +130,15 @@ doctor() {
 
   printf '\nLayouts/config\n'
   check_file "$REPO_LAYOUT_FILE" optional
+  check_file "$REPO_LAYOUT_SWAP_FILE" optional
   check_file "$HOME_LAYOUT_FILE_FALLBACK" optional
+  check_file "$HOME_LAYOUT_SWAP_FILE_FALLBACK" optional
   check_file "$REPO_HOME_LAYOUT_FILE" optional
   check_file "$HOME_HOME_LAYOUT_FILE_FALLBACK" optional
   check_file "$REPO_PROJECT_LAYOUT_FILE" optional
+  check_file "$REPO_PROJECT_SWAP_FILE" optional
   check_file "$HOME_PROJECT_LAYOUT_FILE_FALLBACK" optional
+  check_file "$HOME_PROJECT_SWAP_FILE_FALLBACK" optional
   check_file "$REPO_CONFIG_FILE" optional
   check_file "$HOME_CONFIG_FILE" optional
 
@@ -138,11 +161,8 @@ if ! command -v zellij >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ -f "$REPO_LAYOUT_FILE" ]]; then
-  LAYOUT_FILE="$REPO_LAYOUT_FILE"
-elif [[ -f "$HOME_LAYOUT_FILE_FALLBACK" ]]; then
-  LAYOUT_FILE="$HOME_LAYOUT_FILE_FALLBACK"
-fi
+LAYOUT_FILE="$(pick_first_file "$REPO_LAYOUT_FILE" "$HOME_LAYOUT_FILE_FALLBACK" || true)"
+PROJECT_LAYOUT_FILE="$(pick_first_file "$REPO_PROJECT_LAYOUT_FILE" "$HOME_PROJECT_LAYOUT_FILE_FALLBACK" || true)"
 
 if [[ ! -f "$LAYOUT_FILE" ]]; then
   printf 'Error: missing layout file: %s\n' "$LAYOUT_FILE" >&2
@@ -153,12 +173,6 @@ if [[ -f "$REPO_HOME_LAYOUT_FILE" ]]; then
   HOME_LAYOUT_FILE="$REPO_HOME_LAYOUT_FILE"
 elif [[ -f "$HOME_HOME_LAYOUT_FILE_FALLBACK" ]]; then
   HOME_LAYOUT_FILE="$HOME_HOME_LAYOUT_FILE_FALLBACK"
-fi
-
-if [[ -f "$REPO_PROJECT_LAYOUT_FILE" ]]; then
-  PROJECT_LAYOUT_FILE="$REPO_PROJECT_LAYOUT_FILE"
-elif [[ -f "$HOME_PROJECT_LAYOUT_FILE_FALLBACK" ]]; then
-  PROJECT_LAYOUT_FILE="$HOME_PROJECT_LAYOUT_FILE_FALLBACK"
 fi
 
 if [[ ! -f "$HOME_LAYOUT_FILE" || ! -f "$PROJECT_LAYOUT_FILE" ]]; then

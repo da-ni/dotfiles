@@ -44,7 +44,9 @@ Reference notes live in `docs/` for setup tasks we may need again.
 - `~/.config/zellij/ws-config.kdl`
 - `~/.config/zellij/layouts/home-stack.kdl`
 - `~/.config/zellij/layouts/studio.kdl`
+- `~/.config/zellij/layouts/studio.swap.kdl`
 - `~/.config/zellij/layouts/project-stack.kdl`
+- `~/.config/zellij/layouts/project-stack.swap.kdl`
 - `~/.config/omarchy/themed/zellij.kdl.tpl`
 
 ### Omarchy hook injection target

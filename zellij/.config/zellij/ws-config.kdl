@@ -151,8 +151,6 @@ keybinds {
                 y "20%"
             };
         }
-        bind "Alt [" { GoToPreviousTab; }
-        bind "Alt ]" { GoToNextTab; }
         bind "Alt q" {
             Run "ws-yazi" {
                 floating true

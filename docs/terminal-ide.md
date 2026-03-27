@@ -14,11 +14,27 @@ The workspace uses a bottom `tab-bar` only for a cleaner, low-chrome UI.
 
 On attach, `ws` ensures fixed tabs (`Home`, `dotfiles`, `Vault`) exist.
 
+## Layout switching
+
+Workspace tabs start in a stacked base layout (`terminal`, `helix`, `opencode`).
+
+An alternate swap layout named `SPLIT` is available:
+
+- left: `helix` top + `terminal` bottom
+- right (~1/3): `opencode` full height
+
+Switch between `BASE` and `SPLIT` with:
+
+```bash
+Alt-[
+Alt-]
+```
+
 ## Default tabs
 
 - `Home`: `terminal` only
-- `dotfiles`: stack rooted at `~/Documents/dotfiles` (helix focused)
-- `Vault`: stack rooted at `~/Documents/Vaults/work/obsidian-vault` (helix focused)
+- `dotfiles`: workspace layout rooted at `~/Documents/dotfiles` (helix focused)
+- `Vault`: workspace layout rooted at `~/Documents/Vaults/work/obsidian-vault` (helix focused)
 
 Each fixed tab opens with a pinned working directory (`$HOME`, `~/Documents/dotfiles`, `~/Documents/Vaults/work/obsidian-vault`).
 
@@ -44,7 +60,7 @@ Prefer recent zoxide projects first:
 ws add --recent
 ```
 
-Each new project tab uses a stacked layout with:
+Each new project tab starts in the stacked base layout with these panes:
 
 - `terminal`
 - `helix` (expanded by default)
@@ -83,7 +99,7 @@ Fast key: `Alt-q` (floating).
 ## Useful built-in zellij keys
 
 - `Alt h/j/k/l`: move focus between panes
-- `Alt [` / `Alt ]`: previous/next tab (matches tab-bar hint)
+- `Alt [` / `Alt ]`: previous/next swap layout (`BASE` / `SPLIT`)
 - `Alt q`: open floating yazi
 - `Alt w`: open floating lazygit
 - `Ctrl n`: enter/exit resize mode

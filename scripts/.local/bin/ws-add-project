@@ -22,7 +22,7 @@ usage() {
   cat <<'EOF'
 Usage: ws-add-project [--yazi] [--recent]
 
-Pick a directory under ~/Documents and open it as a new stacked project tab.
+Pick a directory under ~/Documents and open it as a new project tab.
 
 Options:
   --yazi   Use yazi folder selection instead of fzf
