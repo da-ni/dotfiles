@@ -1,8 +1,0 @@
-layout {
-    pane stacked=true {
-        pane name="terminal" expanded=true command="bash" {
-            args "-lc" "cd \"$HOME\" && exec bash"
-            start_suspended false
-        }
-    }
-}

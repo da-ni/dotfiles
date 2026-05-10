@@ -3,7 +3,6 @@
   "instructions": [
     "AGENTS.md",
     "README.md",
-    "docs/README.md",
-    "docs/terminal-ide.md"
+    "docs/README.md"
   ]
 }
