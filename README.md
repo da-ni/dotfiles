@@ -4,7 +4,7 @@ Personal dotfiles for an Omarchy setup.
 
 This repo uses a hybrid approach:
 
-1. Own selected files directly via GNU Stow (`bash`, `hypr`, `waybar`).
+1. Own selected files directly via GNU Stow (`bash`, `hypr`, `waybar`, `ghostty`).
 2. Extend Omarchy-managed Hypr config by appending a managed `source` block to `~/.config/hypr/hyprland.conf`.
 
 This keeps Omarchy update-friendly while still allowing local customization.
@@ -28,6 +28,7 @@ Reference notes live in `docs/` for setup tasks we may need again.
 - `~/.config/waybar/style.css`
 - `~/.config/waybar/cava.sh`
 - `~/.config/waybar/mpris.sh`
+- `~/.config/ghostty/config`
 
 ### Omarchy hook injection target
 
