@@ -7,6 +7,7 @@ source ~/.local/share/omarchy/default/bash/rc
 
 # Add your own exports, aliases, and functions here.
 # Make an alias for invoking commands you use constantly
+alias hx="helix"
 alias shx='sudo helix'
 alias p='python'
 

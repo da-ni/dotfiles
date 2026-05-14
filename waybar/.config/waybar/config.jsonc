@@ -63,7 +63,19 @@
   "clock": {
     "format": "{:L%A %H:%M}",
     "format-alt": "{:L%d %B W%V %Y}",
-    "tooltip": false,
+    "tooltip": true,
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "calendar": {
+      "mode": "month",
+      "weeks-pos": "right",
+      "iso8601": true,
+      "format": {
+        "months": "<b>{}</b>",
+        "weekdays": "<b>{}</b>",
+        "weeks": "W{}",
+        "today": "<b><u>{}</u></b>"
+      }
+    },
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
   "custom/weather": {

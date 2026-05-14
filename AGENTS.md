@@ -19,7 +19,7 @@ When instructions conflict, follow the highest-priority item.
 
 ## Change Scope
 
-- **Primary edit locations:** `bash/`, `hypr/`, `waybar/`, `ghostty/`, `docs/`
+- **Primary edit locations:** `bash/`, `hypr/`, `waybar/`, `ghostty/`, `voxtype/`, `docs/`
 - **Injection targets only (do not treat as source):**
   - `~/.config/hypr/hyprland.conf`
 - Do not remove or rename managed marker blocks used by `bootstrap.sh`.

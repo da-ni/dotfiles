@@ -5,7 +5,7 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar ghostty)
+PACKAGES=(bash hypr waybar ghostty voxtype)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
 
@@ -24,6 +24,7 @@ Stows:
   ~/.config/waybar/style.css
   ~/.config/waybar/*.sh
   ~/.config/ghostty/config
+  ~/.config/voxtype/config.toml
 
 Also ensures a managed hook block exists in:
   ~/.config/hypr/hyprland.conf
