@@ -5,7 +5,7 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar ghostty voxtype)
+PACKAGES=(bash hypr waybar ghostty voxtype applications systemd)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
 
@@ -25,6 +25,9 @@ Stows:
   ~/.config/waybar/*.sh
   ~/.config/ghostty/config
   ~/.config/voxtype/config.toml
+  ~/.local/share/applications/*.desktop
+  ~/.local/share/applications/icons/*.png
+  ~/.config/systemd/user/*.service
 
 Also ensures a managed hook block exists in:
   ~/.config/hypr/hyprland.conf
@@ -75,7 +78,10 @@ ensure_dirs() {
   mkdir -p \
     "$HOME/.config/hypr" \
     "$HOME/.config/hypr/custom" \
-    "$HOME/.config/waybar"
+    "$HOME/.config/waybar" \
+    "$HOME/.config/systemd/user" \
+    "$HOME/.local/share/applications" \
+    "$HOME/.local/share/applications/icons"
 }
 
 ensure_waybar_script_permissions() {
@@ -88,6 +94,39 @@ ensure_waybar_script_permissions() {
     target="$HOME/.config/waybar/$(basename "$script")"
     [[ -e "$target" ]] && chmod +x "$target"
   done < <(find "$waybar_dir" -maxdepth 1 -type f -name '*.sh' -print0)
+}
+
+ensure_desktop_file_permissions() {
+  local applications_dir="$DOTFILES_DIR/applications/.local/share/applications"
+  [[ -d "$applications_dir" ]] || return 0
+
+  local desktop target
+  while IFS= read -r -d '' desktop; do
+    chmod +x "$desktop"
+    target="$HOME/.local/share/applications/$(basename "$desktop")"
+    [[ -e "$target" ]] && chmod +x "$target"
+  done < <(find "$applications_dir" -maxdepth 1 -type f -name '*.desktop' -print0)
+}
+
+ensure_webapp_icons() {
+  local icon_dir="$HOME/.local/share/applications/icons"
+  local netflix_icon="$icon_dir/Netflix.png"
+  local netflix_icon_url="https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.png"
+
+  [[ -s "$netflix_icon" ]] && return 0
+
+  if ! command -v curl >/dev/null 2>&1; then
+    err "curl not found; skipping Netflix icon download."
+    return 0
+  fi
+
+  if curl -fsSL -o "$netflix_icon" "$netflix_icon_url"; then
+    info "Downloaded Netflix icon to $netflix_icon"
+  else
+    rm -f -- "$netflix_icon"
+    err "Failed to download Netflix icon from $netflix_icon_url"
+    return 1
+  fi
 }
 
 remove_matching_absolute_symlinks() {
@@ -295,6 +334,8 @@ case "$MODE" in
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
     ensure_waybar_script_permissions
+    ensure_desktop_file_permissions
+    ensure_webapp_icons
     info "Apply hook update:"
     ensure_hooks
     ;;
@@ -304,6 +345,8 @@ case "$MODE" in
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
     ensure_waybar_script_permissions
+    ensure_desktop_file_permissions
+    ensure_webapp_icons
     info "Apply hook update:"
     ensure_hooks
     ;;

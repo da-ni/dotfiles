@@ -24,6 +24,9 @@ This keeps Omarchy update-friendly while still allowing local customization.
 - `~/.config/waybar/mpris.sh`
 - `~/.config/ghostty/config`
 - `~/.config/voxtype/config.toml`
+- `~/.local/share/applications/*.desktop`
+- `~/.local/share/applications/icons/*.png`
+- `~/.config/systemd/user/chatterbox-tts.service`
 
 ### Omarchy hook injection target
 

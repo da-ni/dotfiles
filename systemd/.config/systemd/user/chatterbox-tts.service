@@ -1,0 +1,17 @@
+[Unit]
+Description=Chatterbox TTS Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Repositories/Chatterbox-TTS-Server
+Environment=HSA_OVERRIDE_GFX_VERSION=11.0.0
+Environment=HIP_VISIBLE_DEVICES=0
+Environment=PYTHONUNBUFFERED=1
+ExecStart=%h/Repositories/Chatterbox-TTS-Server/venv/bin/python %h/Repositories/Chatterbox-TTS-Server/server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
