@@ -5,10 +5,9 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar scripts zellij omarchy ghostty)
+PACKAGES=(bash hypr waybar ghostty applications)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
-OMARCHY_THEME_SET_HOOK="$HOME/.config/omarchy/hooks/theme-set"
 
 err()  { printf 'Error: %s\n' "$*" >&2; }
 info() { printf '[*] %s\n' "$*"; }
@@ -19,25 +18,20 @@ Usage: bootstrap.sh [--dry-run|--apply|--install|--check|--uninstall]
 
 Stows:
   ~/.bashrc
-  ~/.config/hypr/hypridle.conf
   ~/.config/hypr/hyprsunset.conf
   ~/.config/hypr/custom/*.conf
   ~/.config/waybar/config.jsonc
   ~/.config/waybar/style.css
-  ~/.config/waybar/modules/*
   ~/.config/waybar/*.sh
   ~/.config/ghostty/config
-  ~/.local/bin/*
-  ~/.config/zellij/layouts/*.kdl
-  ~/.config/omarchy/themed/zellij.kdl.tpl
+  ~/.local/share/applications/*.desktop
+  ~/.local/share/applications/icons/*.png
 
-Also ensures managed hook blocks exist in:
+Also ensures a managed hook block exists in:
   ~/.config/hypr/hyprland.conf
-  ~/.config/omarchy/hooks/theme-set
 
 Managed hook block:
   source = ~/.config/hypr/custom/*
-  omarchy-zellij-theme-set "$@"
 
 Modes:
   --apply     Restow packages and ensure hook block
@@ -83,21 +77,8 @@ ensure_dirs() {
     "$HOME/.config/hypr" \
     "$HOME/.config/hypr/custom" \
     "$HOME/.config/waybar" \
-    "$HOME/.local/bin" \
-    "$HOME/.config/omarchy/themed" \
-    "$HOME/.config/omarchy/hooks"
-}
-
-ensure_script_permissions() {
-  local bindir="$DOTFILES_DIR/scripts/.local/bin"
-  [[ -d "$bindir" ]] || return 0
-
-  local script target
-  while IFS= read -r -d '' script; do
-    chmod +x "$script"
-    target="$HOME/.local/bin/$(basename "$script")"
-    [[ -e "$target" ]] && chmod +x "$target"
-  done < <(find "$bindir" -maxdepth 1 -type f -print0)
+    "$HOME/.local/share/applications" \
+    "$HOME/.local/share/applications/icons"
 }
 
 ensure_waybar_script_permissions() {
@@ -110,6 +91,39 @@ ensure_waybar_script_permissions() {
     target="$HOME/.config/waybar/$(basename "$script")"
     [[ -e "$target" ]] && chmod +x "$target"
   done < <(find "$waybar_dir" -maxdepth 1 -type f -name '*.sh' -print0)
+}
+
+ensure_desktop_file_permissions() {
+  local applications_dir="$DOTFILES_DIR/applications/.local/share/applications"
+  [[ -d "$applications_dir" ]] || return 0
+
+  local desktop target
+  while IFS= read -r -d '' desktop; do
+    chmod +x "$desktop"
+    target="$HOME/.local/share/applications/$(basename "$desktop")"
+    [[ -e "$target" ]] && chmod +x "$target"
+  done < <(find "$applications_dir" -maxdepth 1 -type f -name '*.desktop' -print0)
+}
+
+ensure_webapp_icons() {
+  local icon_dir="$HOME/.local/share/applications/icons"
+  local netflix_icon="$icon_dir/Netflix.png"
+  local netflix_icon_url="https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.png"
+
+  [[ -s "$netflix_icon" ]] && return 0
+
+  if ! command -v curl >/dev/null 2>&1; then
+    err "curl not found; skipping Netflix icon download."
+    return 0
+  fi
+
+  if curl -fsSL -o "$netflix_icon" "$netflix_icon_url"; then
+    info "Downloaded Netflix icon to $netflix_icon"
+  else
+    rm -f -- "$netflix_icon"
+    err "Failed to download Netflix icon from $netflix_icon_url"
+    return 1
+  fi
 }
 
 remove_matching_absolute_symlinks() {
@@ -213,16 +227,6 @@ source = ~/.config/hypr/custom/*
 EOF
 }
 
-omarchy_hook_block() {
-  cat <<'EOF'
-# >>> dotfiles-managed omarchy-zellij-theme >>>
-if command -v omarchy-zellij-theme-set >/dev/null 2>&1; then
-  omarchy-zellij-theme-set "$@"
-fi
-# <<< dotfiles-managed omarchy-zellij-theme <<<
-EOF
-}
-
 remove_hook_block_from_file() {
   local file="$1"
   [[ -f "$file" ]] || return 0
@@ -235,30 +239,6 @@ text = path.read_text()
 
 new = re.sub(
     r'\n?# >>> dotfiles-managed custom hooks >>>\n.*?# <<< dotfiles-managed custom hooks <<<\n?',
-    '\n',
-    text,
-    flags=re.S,
-)
-
-new = re.sub(r'\n{3,}', '\n\n', new).rstrip() + '\n'
-
-if new != text:
-    path.write_text(new)
-PY
-}
-
-remove_omarchy_hook_block_from_file() {
-  local file="$1"
-  [[ -f "$file" ]] || return 0
-
-  python3 - "$file" <<'PY'
-import pathlib, re, sys
-
-path = pathlib.Path(sys.argv[1])
-text = path.read_text()
-
-new = re.sub(
-    r'\n?# >>> dotfiles-managed omarchy-zellij-theme >>>\n.*?# <<< dotfiles-managed omarchy-zellij-theme <<<\n?',
     '\n',
     text,
     flags=re.S,
@@ -290,36 +270,6 @@ ensure_hook_block_in_file() {
   info "Ensured managed hook block in $file"
 }
 
-ensure_omarchy_theme_hook_file() {
-  if [[ ! -f "$OMARCHY_THEME_SET_HOOK" ]]; then
-    {
-      printf '#!/usr/bin/env bash\n'
-      printf 'set -euo pipefail\n'
-      printf '\n'
-    } > "$OMARCHY_THEME_SET_HOOK"
-    chmod +x "$OMARCHY_THEME_SET_HOOK"
-    info "Created Omarchy theme-set hook file at $OMARCHY_THEME_SET_HOOK"
-  fi
-}
-
-ensure_omarchy_hook_block_in_file() {
-  local file="$1"
-  local block="$2"
-
-  if [[ ! -f "$file" ]]; then
-    err "Expected Omarchy hook file does not exist: $file"
-    exit 1
-  fi
-
-  remove_omarchy_hook_block_from_file "$file"
-  {
-    printf '\n'
-    printf '%s\n' "$block"
-  } >> "$file"
-
-  info "Ensured managed Omarchy hook block in $file"
-}
-
 preview_hook_action() {
   local file="$1"
   local block="$2"
@@ -340,20 +290,15 @@ preview_hook_action() {
 
 ensure_hooks() {
   ensure_hook_block_in_file "$HYPR_ROOT_CONF" "$(hook_block)"
-  ensure_omarchy_theme_hook_file
-  ensure_omarchy_hook_block_in_file "$OMARCHY_THEME_SET_HOOK" "$(omarchy_hook_block)"
 }
 
 preview_hooks() {
   preview_hook_action "$HYPR_ROOT_CONF" "$(hook_block)"
-  preview_hook_action "$OMARCHY_THEME_SET_HOOK" "$(omarchy_hook_block)"
 }
 
 remove_hooks() {
   remove_hook_block_from_file "$HYPR_ROOT_CONF"
   info "Removed managed hook block from $HYPR_ROOT_CONF"
-  remove_omarchy_hook_block_from_file "$OMARCHY_THEME_SET_HOOK"
-  info "Removed managed hook block from $OMARCHY_THEME_SET_HOOK"
 }
 
 printf 'Mode    : %s\n' "$MODE"
@@ -385,8 +330,9 @@ case "$MODE" in
     backup_conflicting_targets
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
-    ensure_script_permissions
     ensure_waybar_script_permissions
+    ensure_desktop_file_permissions
+    ensure_webapp_icons
     info "Apply hook update:"
     ensure_hooks
     ;;
@@ -395,8 +341,9 @@ case "$MODE" in
     remove_matching_absolute_symlinks
     info "Apply stow:"
     run_stow -R "${PACKAGES[@]}"
-    ensure_script_permissions
     ensure_waybar_script_permissions
+    ensure_desktop_file_permissions
+    ensure_webapp_icons
     info "Apply hook update:"
     ensure_hooks
     ;;
