@@ -194,6 +194,7 @@
   "custom/mpris": {
     "format": "{}",
     "return-type": "json",
+    "escape": true,
     "exec": "~/.config/waybar/mpris.sh",
     "on-click": "playerctl play-pause",
     "on-click-right": "playerctl stop",
