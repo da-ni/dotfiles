@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 PLAYERCTL_BIN="playerctl"
-MAX_MEDIA_LEN=42
+MAX_MEDIA_LEN=28
 FIELD_SEP=$'\x1f'
 
 declare -A PLAYER_ICONS=(
