@@ -5,7 +5,7 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar ghostty voxtype applications systemd)
+PACKAGES=(bash hypr waybar ghostty voxtype applications systemd scripts omarchy)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
 
@@ -28,6 +28,8 @@ Stows:
   ~/.local/share/applications/*.desktop
   ~/.local/share/applications/icons/*.png
   ~/.config/systemd/user/*.service
+  ~/.local/bin/*
+  ~/.config/omarchy/themes/retro-82/helix.toml
 
 Also ensures a managed hook block exists in:
   ~/.config/hypr/hyprland.conf
@@ -79,6 +81,7 @@ ensure_dirs() {
     "$HOME/.config/hypr" \
     "$HOME/.config/hypr/custom" \
     "$HOME/.config/waybar" \
+    "$HOME/.config/omarchy/themes" \
     "$HOME/.config/systemd/user" \
     "$HOME/.local/share/applications" \
     "$HOME/.local/share/applications/icons"
@@ -106,6 +109,18 @@ ensure_desktop_file_permissions() {
     target="$HOME/.local/share/applications/$(basename "$desktop")"
     [[ -e "$target" ]] && chmod +x "$target"
   done < <(find "$applications_dir" -maxdepth 1 -type f -name '*.desktop' -print0)
+}
+
+ensure_local_bin_permissions() {
+  local bin_dir="$DOTFILES_DIR/scripts/.local/bin"
+  [[ -d "$bin_dir" ]] || return 0
+
+  local script target
+  while IFS= read -r -d '' script; do
+    chmod +x "$script"
+    target="$HOME/.local/bin/$(basename "$script")"
+    [[ -e "$target" ]] && chmod +x "$target"
+  done < <(find "$bin_dir" -maxdepth 1 -type f -print0)
 }
 
 ensure_webapp_icons() {
@@ -335,6 +350,7 @@ case "$MODE" in
     run_stow -R "${PACKAGES[@]}"
     ensure_waybar_script_permissions
     ensure_desktop_file_permissions
+    ensure_local_bin_permissions
     ensure_webapp_icons
     info "Apply hook update:"
     ensure_hooks
@@ -346,6 +362,7 @@ case "$MODE" in
     run_stow -R "${PACKAGES[@]}"
     ensure_waybar_script_permissions
     ensure_desktop_file_permissions
+    ensure_local_bin_permissions
     ensure_webapp_icons
     info "Apply hook update:"
     ensure_hooks

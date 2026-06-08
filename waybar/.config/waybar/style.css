@@ -47,6 +47,15 @@
   margin-right: 17px;
 }
 
+#custom-work-vpn {
+  min-width: 12px;
+  margin-right: 13px;
+}
+
+#custom-work-vpn.disconnected {
+  opacity: 0.55;
+}
+
 #network {
   margin-right: 13px;
 }

@@ -1,0 +1,367 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/work-vpn"
+CONFIG_FILE="$CONFIG_DIR/config"
+PID_FILE="${XDG_RUNTIME_DIR:-/tmp}/work-vpn-openconnect.pid"
+SECRET_SERVICE="work-vpn"
+
+VPN_NAME="Work VPN"
+VPN_SERVER=""
+VPN_USERNAME="${USER:-}"
+OPENCONNECT_PROTOCOL=""
+OPENCONNECT_AUTHGROUP=""
+OPENCONNECT_USER_AGENT="AnyConnect OpenConnect"
+OPENCONNECT_NO_EXTERNAL_AUTH=1
+OPENCONNECT_PASSWORD_ON_STDIN=1
+OPENCONNECT_BACKGROUND=1
+OPENCONNECT_EXTRA_ARGS=()
+PROMPT_FOR_OTP=1
+VPN_INTERFACE="tun0"
+DISABLE_DNS_OVER_TLS=1
+OPENCONNECT_SCRIPT_BASE="/etc/vpnc/vpnc-script"
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "$VPN_NAME" "$1"
+  else
+    printf '%s\n' "$1" >&2
+  fi
+}
+
+die() {
+  notify "$1"
+  printf 'Error: %s\n' "$1" >&2
+  exit 1
+}
+
+load_config() {
+  if [[ -f "$CONFIG_FILE" ]]; then
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+  fi
+}
+
+ensure_config() {
+  mkdir -p "$CONFIG_DIR"
+  chmod 700 "$CONFIG_DIR"
+
+  if [[ ! -f "$CONFIG_FILE" ]]; then
+    cat >"$CONFIG_FILE" <<'EOF'
+# Local machine-private settings for omarchy-work-vpn.
+# Do not add this file to the dotfiles repository.
+
+VPN_NAME="Work VPN"
+VPN_SERVER="vpn.example.com"
+VPN_USERNAME="your.username"
+
+# Common OpenConnect protocols: anyconnect, gp, pulse, f5, fortinet.
+# Leave empty to use OpenConnect's default behavior.
+OPENCONNECT_PROTOCOL=""
+
+# OpenConnect options from your old manual command.
+OPENCONNECT_AUTHGROUP=""
+OPENCONNECT_USER_AGENT="AnyConnect OpenConnect"
+OPENCONNECT_NO_EXTERNAL_AUTH=1
+OPENCONNECT_PASSWORD_ON_STDIN=1
+OPENCONNECT_BACKGROUND=1
+
+# Extra OpenConnect flags, if your work VPN ever needs them.
+OPENCONNECT_EXTRA_ARGS=()
+
+# Disable systemd-resolved DNS-over-TLS on the VPN tunnel after connecting.
+VPN_INTERFACE="tun0"
+DISABLE_DNS_OVER_TLS=1
+OPENCONNECT_SCRIPT_BASE="/etc/vpnc/vpnc-script"
+
+# Set to 0 only if your VPN does not ask for a one-time code.
+PROMPT_FOR_OTP=1
+EOF
+    chmod 600 "$CONFIG_FILE"
+    notify "Created $CONFIG_FILE"
+  else
+    refresh_config
+  fi
+}
+
+config_has_key() {
+  local key="$1"
+  grep -Eq "^[[:space:]]*${key}=" "$CONFIG_FILE"
+}
+
+append_config_key() {
+  local key="$1"
+  local value="$2"
+  local comment="${3:-}"
+
+  config_has_key "$key" && return 0
+  {
+    printf '\n'
+    [[ -n "$comment" ]] && printf '# %s\n' "$comment"
+    printf '%s=%s\n' "$key" "$value"
+  } >>"$CONFIG_FILE"
+}
+
+refresh_config() {
+  chmod 600 "$CONFIG_FILE"
+
+  if grep -Fq 'OPENCONNECT_EXTRA_ARGS=(--no-dtls)' "$CONFIG_FILE"; then
+    sed -i 's/^OPENCONNECT_EXTRA_ARGS=(--no-dtls)$/OPENCONNECT_EXTRA_ARGS=()/' "$CONFIG_FILE"
+    sed -i '/^# .*DTLS.*--no-dtls/d' "$CONFIG_FILE"
+  fi
+
+  append_config_key "OPENCONNECT_AUTHGROUP" '""' "OpenConnect auth group from your old manual command, if required."
+  append_config_key "OPENCONNECT_USER_AGENT" '"AnyConnect OpenConnect"'
+  append_config_key "OPENCONNECT_NO_EXTERNAL_AUTH" "1"
+  append_config_key "OPENCONNECT_PASSWORD_ON_STDIN" "1"
+  append_config_key "OPENCONNECT_BACKGROUND" "1"
+  append_config_key "OPENCONNECT_EXTRA_ARGS" "()" "Extra OpenConnect flags, if your work VPN ever needs them."
+  append_config_key "VPN_INTERFACE" '"tun0"' "Disable systemd-resolved DNS-over-TLS on the VPN tunnel after connecting."
+  append_config_key "DISABLE_DNS_OVER_TLS" "1"
+  append_config_key "OPENCONNECT_SCRIPT_BASE" '"/etc/vpnc/vpnc-script"'
+
+  if config_has_key "DNS_OVER_TLS_WAIT_SECONDS"; then
+    sed -i '/^[[:space:]]*DNS_OVER_TLS_WAIT_SECONDS=/d' "$CONFIG_FILE"
+  fi
+
+  if config_has_key "OPENCONNECT_SETUID"; then
+    sed -i '/^[[:space:]]*OPENCONNECT_SETUID=/d' "$CONFIG_FILE"
+  fi
+}
+
+is_connected() {
+  if [[ -s "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    return 0
+  fi
+
+  if [[ -n "$VPN_SERVER" ]] && pgrep -af "openconnect.*${VPN_SERVER}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  pgrep -x openconnect >/dev/null 2>&1
+}
+
+json_status() {
+  load_config
+  if is_connected; then
+    printf '{"text":"󰒘","class":"connected","tooltip":"%s connected\\nLeft click: disconnect\\nRight click: edit config"}\n' "$VPN_NAME"
+  else
+    printf '{"text":"󰦝","class":"disconnected","tooltip":"%s disconnected\\nLeft click: connect\\nRight click: edit config"}\n' "$VPN_NAME"
+  fi
+}
+
+read_secret() {
+  command -v secret-tool >/dev/null 2>&1 || return 0
+  secret-tool lookup service "$SECRET_SERVICE" account "$VPN_USERNAME" 2>/dev/null || true
+}
+
+store_secret() {
+  local password="$1"
+  command -v secret-tool >/dev/null 2>&1 || return 0
+  printf '%s' "$password" | secret-tool store \
+    --label="$VPN_NAME password" \
+    service "$SECRET_SERVICE" \
+    account "$VPN_USERNAME" >/dev/null 2>&1 || true
+}
+
+prompt_text() {
+  local title="$1"
+  local text="$2"
+  local hidden="${3:-0}"
+
+  if command -v zenity >/dev/null 2>&1; then
+    if [[ "$hidden" == 1 ]]; then
+      zenity --password --title="$title"
+    else
+      zenity --entry --title="$title" --text="$text"
+    fi
+  else
+    printf '%s: ' "$text" >/dev/tty
+    if [[ "$hidden" == 1 ]]; then
+      read -r -s value </dev/tty
+      printf '\n' >/dev/tty
+      printf '%s\n' "$value"
+    else
+      read -r value </dev/tty
+      printf '%s\n' "$value"
+    fi
+  fi
+}
+
+connect_vpn() {
+  load_config
+  [[ -n "$VPN_SERVER" && "$VPN_SERVER" != "vpn.example.com" ]] || die "Set VPN_SERVER in $CONFIG_FILE first."
+  [[ -n "$VPN_USERNAME" && "$VPN_USERNAME" != "your.username" ]] || die "Set VPN_USERNAME in $CONFIG_FILE first."
+  command -v openconnect >/dev/null 2>&1 || die "Install openconnect first: yay -S openconnect"
+
+  if is_connected; then
+    notify "Already connected."
+    return 0
+  fi
+
+  local password otp
+  password="$(read_secret)"
+  if [[ -z "$password" ]]; then
+    password="$(prompt_text "$VPN_NAME" "Password for $VPN_USERNAME" 1)"
+    [[ -n "$password" ]] || die "Password prompt cancelled."
+    store_secret "$password"
+  fi
+
+  otp=""
+  if [[ "${PROMPT_FOR_OTP:-1}" == 1 ]]; then
+    otp="$(prompt_text "$VPN_NAME" "Two-factor code" 0)"
+    [[ -n "$otp" ]] || die "Two-factor prompt cancelled."
+  fi
+
+  local script_wrapper
+  script_wrapper="$(write_vpnc_script_wrapper)"
+
+  local cmd
+  build_openconnect_cmd "$script_wrapper"
+  cmd=("${OPENCONNECT_CMD[@]}")
+
+  notify "Connecting..."
+  printf 'Connecting to %s as %s\n' "$VPN_SERVER" "$VPN_USERNAME"
+  if [[ -n "${OPENCONNECT_AUTHGROUP:-}" ]]; then
+    printf 'Auth group: %s\n' "$OPENCONNECT_AUTHGROUP"
+  fi
+  printf 'OpenConnect will daemonize after authentication; this terminal can close after the command returns.\n\n'
+
+  sudo -v
+
+  if {
+    printf '%s\n' "$password"
+    [[ -n "$otp" ]] && printf '%s\n' "$otp"
+  } | sudo "${cmd[@]}"; then
+    notify "Connected."
+  else
+    die "Connection failed."
+  fi
+}
+
+build_openconnect_cmd() {
+  local script_wrapper="$1"
+
+  OPENCONNECT_CMD=(openconnect)
+  [[ -n "$OPENCONNECT_PROTOCOL" ]] && OPENCONNECT_CMD+=(--protocol "$OPENCONNECT_PROTOCOL")
+  [[ -n "${OPENCONNECT_AUTHGROUP:-}" ]] && OPENCONNECT_CMD+=(--authgroup "$OPENCONNECT_AUTHGROUP")
+  [[ -n "${OPENCONNECT_USER_AGENT:-}" ]] && OPENCONNECT_CMD+=(--useragent "$OPENCONNECT_USER_AGENT")
+  [[ "${OPENCONNECT_NO_EXTERNAL_AUTH:-1}" == 1 ]] && OPENCONNECT_CMD+=(--no-external-auth)
+  [[ "${OPENCONNECT_PASSWORD_ON_STDIN:-1}" == 1 ]] && OPENCONNECT_CMD+=(--passwd-on-stdin)
+  [[ "${OPENCONNECT_BACKGROUND:-1}" == 1 ]] && OPENCONNECT_CMD+=(--background --pid-file "$PID_FILE")
+  OPENCONNECT_CMD+=(--script "$script_wrapper")
+  OPENCONNECT_CMD+=("${OPENCONNECT_EXTRA_ARGS[@]}")
+  OPENCONNECT_CMD+=(--user "$VPN_USERNAME" "$VPN_SERVER")
+}
+
+print_command() {
+  load_config
+  local script_wrapper="${XDG_RUNTIME_DIR:-/tmp}/work-vpn/vpnc-script"
+  build_openconnect_cmd "$script_wrapper"
+
+  printf 'OpenConnect command:\n'
+  printf '  '
+  printf '%q ' "${OPENCONNECT_CMD[@]}"
+  printf '\n\n'
+  if [[ -n "${OPENCONNECT_AUTHGROUP:-}" ]]; then
+    printf 'Auth group is configured and will be passed as: --authgroup %q\n' "$OPENCONNECT_AUTHGROUP"
+  else
+    printf 'Auth group is empty; no --authgroup option will be passed.\n'
+  fi
+}
+
+write_vpnc_script_wrapper() {
+  local wrapper_dir="${XDG_RUNTIME_DIR:-/tmp}/work-vpn"
+  local wrapper="$wrapper_dir/vpnc-script"
+
+  mkdir -p "$wrapper_dir"
+  chmod 700 "$wrapper_dir"
+
+  cat >"$wrapper" <<EOF
+#!/usr/bin/env sh
+set -eu
+
+base_script='${OPENCONNECT_SCRIPT_BASE:-/etc/vpnc/vpnc-script}'
+disable_dot='${DISABLE_DNS_OVER_TLS:-1}'
+fallback_interface='${VPN_INTERFACE:-tun0}'
+
+if [ -n "\$base_script" ] && [ -x "\$base_script" ]; then
+  "\$base_script" "\$@"
+fi
+
+if [ "\${reason:-}" = connect ] && [ "\$disable_dot" = 1 ] && command -v resolvectl >/dev/null 2>&1; then
+  resolvectl dnsovertls "\${TUNDEV:-\$fallback_interface}" no || true
+fi
+EOF
+
+  chmod 700 "$wrapper"
+  printf '%s\n' "$wrapper"
+}
+
+disconnect_vpn() {
+  load_config
+  if [[ -s "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    local pid
+    pid="$(cat "$PID_FILE")"
+    if ! kill "$pid" 2>/dev/null; then
+      sudo kill "$pid" 2>/dev/null || true
+    fi
+    rm -f "$PID_FILE"
+  elif [[ -n "$VPN_SERVER" ]]; then
+    pkill -f "openconnect.*${VPN_SERVER}" 2>/dev/null || sudo pkill -f "openconnect.*${VPN_SERVER}" 2>/dev/null || true
+  else
+    pkill -x openconnect 2>/dev/null || sudo pkill -x openconnect 2>/dev/null || true
+  fi
+  notify "Disconnected."
+}
+
+edit_config() {
+  ensure_config
+  if command -v omarchy-launch-editor >/dev/null 2>&1; then
+    exec omarchy-launch-editor "$CONFIG_FILE"
+  fi
+
+  "${EDITOR:-nvim}" "$CONFIG_FILE"
+}
+
+setup_config() {
+  ensure_config
+  load_config
+  printf 'Config: %s\n' "$CONFIG_FILE"
+  printf 'Password keyring label: %s password\n' "$VPN_NAME"
+  printf '\nEdit the config, then run: omarchy-work-vpn connect\n'
+}
+
+usage() {
+  cat <<'EOF'
+Usage: omarchy-work-vpn <status|connect|disconnect|toggle|setup|edit|command>
+
+Commands:
+  status      Print Waybar JSON status.
+  connect     Connect with OpenConnect.
+  disconnect  Stop the OpenConnect process.
+  toggle      Connect or disconnect based on current state.
+  setup       Create the local config template.
+  edit        Open the local config.
+  command     Print the OpenConnect command without secrets.
+EOF
+}
+
+main() {
+  case "${1:-toggle}" in
+    status) json_status ;;
+    connect) connect_vpn ;;
+    disconnect) disconnect_vpn ;;
+    toggle)
+      load_config
+      if is_connected; then disconnect_vpn; else connect_vpn; fi
+      ;;
+    setup) setup_config ;;
+    edit) edit_config ;;
+    command) print_command ;;
+    -h|--help|help) usage ;;
+    *) usage; exit 1 ;;
+  esac
+}
+
+main "$@"

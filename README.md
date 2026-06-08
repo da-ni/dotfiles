@@ -24,9 +24,11 @@ This keeps Omarchy update-friendly while still allowing local customization.
 - `~/.config/waybar/mpris.sh`
 - `~/.config/ghostty/config`
 - `~/.config/voxtype/config.toml`
+- `~/.local/bin/omarchy-work-vpn`
 - `~/.local/share/applications/*.desktop`
 - `~/.local/share/applications/icons/*.png`
 - `~/.config/systemd/user/chatterbox-tts.service`
+- `~/.config/omarchy/themes/retro-82/helix.toml`
 
 ### Omarchy hook injection target
 
@@ -53,6 +55,7 @@ Required:
 Optional/runtime tools used by some Waybar modules:
 
 - `cava`, `playerctl` (Waybar MPRIS + spectrum modules)
+- `openconnect`, `secret-tool`, `zenity` (Work VPN launcher)
 
 ## Installation and usage
 
@@ -80,3 +83,17 @@ When you change files in this repo, rerun:
 ```
 
 That reapplies symlinks, refreshes the managed hook block, and re-applies script permissions.
+
+## Work VPN
+
+The Work VPN launcher is managed as `~/.local/bin/omarchy-work-vpn` and appears in Waybar as a VPN icon next to networking. Left click toggles the VPN in a floating terminal; right click opens the local config.
+
+One-time setup:
+
+```bash
+yay -S openconnect
+omarchy-work-vpn setup
+$EDITOR ~/.config/work-vpn/config
+```
+
+The config file and keyring password are intentionally outside this repository. The launcher supports an OpenConnect auth group, AnyConnect-style user agent, and `--no-external-auth` defaults. It backgrounds OpenConnect after authentication and runs `resolvectl dnsovertls tun0 no` from the OpenConnect connect hook. Use `omarchy-work-vpn command` to preview the exact OpenConnect argv without secrets.

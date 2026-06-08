@@ -9,6 +9,7 @@
   "modules-right": [
     "group/tray-expander",
     "bluetooth",
+    "custom/work-vpn",
     "network",
     "pulseaudio",
     "cpu",
@@ -126,6 +127,14 @@
     "format-no-controller": "",
     "tooltip-format": "Devices connected: {num_connections}",
     "on-click": "omarchy-launch-bluetooth"
+  },
+  "custom/work-vpn": {
+    "exec": "omarchy-work-vpn status",
+    "return-type": "json",
+    "format": "{}",
+    "interval": 5,
+    "on-click": "omarchy-launch-floating-terminal-with-presentation omarchy-work-vpn toggle",
+    "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-work-vpn edit"
   },
   "pulseaudio": {
     "format": "{icon}",

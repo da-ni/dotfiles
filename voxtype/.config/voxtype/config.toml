@@ -9,6 +9,7 @@
 # ("idle", "recording", "transcribing") to this file whenever it changes.
 # Required for `voxtype record toggle` and `voxtype status` commands.
 state_file = "auto"
+engine = "whisper"
 
 [hotkey]
 # Hotkey is configured in Hyprland. Default is Super + Ctrl + X
@@ -53,6 +54,10 @@ language = "auto"
 
 # Translate non-English speech to English
 translate = false
+mode = "local"
+flash_attention = true
+on_demand_loading = false
+gpu_isolation = false
 
 # Number of CPU threads for inference (omit for auto-detection)
 # threads = 4
