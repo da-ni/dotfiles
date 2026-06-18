@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="Serpl"
+
+usage() {
+  cat <<'USAGE'
+Usage: omarchy-yazelix-serpl [install|launch|status|help] [serpl args...]
+
+Commands:
+  install  Install serpl into the default Nix profile
+  launch   Launch serpl, installing first if missing
+  status   Print serpl availability
+
+With no command, this launches serpl in the current directory.
+USAGE
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "$APP_NAME" "$1"
+  fi
+}
+
+die() {
+  notify "$1"
+  printf 'Error: %s\n' "$1" >&2
+  exit 1
+}
+
+profile_path() {
+  export PATH="${YAZELIX_RUNTIME_DIR:-}/toolbin:${YAZELIX_RUNTIME_DIR:-}/bin:$HOME/.local/state/nix/profile/bin:$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
+}
+
+yzx_control_path() {
+  local yzx_control="${YAZELIX_RUNTIME_DIR:-}/libexec/yzx_control"
+
+  if [[ -x "$yzx_control" ]]; then
+    printf '%s\n' "$yzx_control"
+    return 0
+  fi
+
+  if [[ -x "$HOME/.nix-profile/bin/yzx" ]]; then
+    local yzx_store
+    yzx_store="$(readlink -f "$HOME/.nix-profile/bin/yzx")"
+    yzx_control="${yzx_store%/bin/yzx}/libexec/yzx_control"
+    [[ -x "$yzx_control" ]] && printf '%s\n' "$yzx_control"
+  fi
+}
+
+project_root() {
+  local yzx_control
+  yzx_control="$(yzx_control_path || true)"
+
+  if [[ -n "$yzx_control" ]]; then
+    "$yzx_control" zellij get-workspace-root 2>/dev/null || pwd
+    return 0
+  fi
+
+  pwd
+}
+
+editor_pane_id() {
+  local pane_id=""
+
+  if [[ -n "${YAZELIX_STATUS_BAR_CACHE_PATH:-}" && -r "$YAZELIX_STATUS_BAR_CACHE_PATH" ]] && command -v jq >/dev/null 2>&1; then
+    pane_id="$(jq -r '.status_bus.managed_panes.editor_pane_id // empty' "$YAZELIX_STATUS_BAR_CACHE_PATH" 2>/dev/null || true)"
+  fi
+
+  pane_id="${pane_id//:/_}"
+  [[ -n "$pane_id" ]] && printf '%s\n' "$pane_id"
+}
+
+reload_helix_buffers() {
+  local pane_id
+  pane_id="$(editor_pane_id || true)"
+
+  command -v zellij >/dev/null 2>&1 || return 0
+  [[ -n "$pane_id" ]] || return 0
+
+  zellij action hide-floating-panes || true
+  zellij action write --pane-id "$pane_id" 27 || true
+  zellij action write-chars --pane-id "$pane_id" ":reload-all" || true
+  zellij action write --pane-id "$pane_id" 13 || true
+}
+
+has_project_root_arg() {
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      -p|--project-root|--project-root=*) return 0 ;;
+    esac
+  done
+
+  return 1
+}
+
+ensure_nix() {
+  profile_path
+  command -v nix >/dev/null 2>&1 || die "Nix is required. Install it first with omarchy-yazelix nix-help."
+}
+
+install_serpl() {
+  ensure_nix
+  nix profile install nixpkgs#serpl
+  profile_path
+  command -v serpl >/dev/null 2>&1 || die "serpl installed, but it is not on PATH. Open a fresh shell and retry."
+}
+
+launch_serpl() {
+  profile_path
+  if ! command -v serpl >/dev/null 2>&1; then
+    install_serpl
+  fi
+
+  if ! command -v rg >/dev/null 2>&1; then
+    printf 'Warning: ripgrep is not on PATH; serpl requires it for searching.\n' >&2
+  fi
+
+  if has_project_root_arg "$@"; then
+    serpl "$@"
+    local exit_code=$?
+    [[ $exit_code -eq 0 ]] && reload_helix_buffers
+    exit "$exit_code"
+  fi
+
+  serpl --project-root "$(project_root)" "$@"
+  local exit_code=$?
+  [[ $exit_code -eq 0 ]] && reload_helix_buffers
+  exit "$exit_code"
+}
+
+status_serpl() {
+  profile_path
+  if command -v serpl >/dev/null 2>&1; then
+    serpl --version
+  else
+    printf 'serpl: missing\n'
+  fi
+
+  if command -v rg >/dev/null 2>&1; then
+    rg --version | head -n 1
+  else
+    printf 'ripgrep: missing\n'
+  fi
+}
+
+main() {
+  local command="${1:-launch}"
+  case "$command" in
+    install) shift; install_serpl "$@" ;;
+    launch) shift; launch_serpl "$@" ;;
+    status) shift; status_serpl "$@" ;;
+    -h|--help|help) usage ;;
+    *) launch_serpl "$command" "${@:2}" ;;
+  esac
+}
+
+main "$@"

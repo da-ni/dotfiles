@@ -25,10 +25,14 @@ This keeps Omarchy update-friendly while still allowing local customization.
 - `~/.config/ghostty/config`
 - `~/.config/voxtype/config.toml`
 - `~/.local/bin/omarchy-work-vpn`
+- `~/.local/bin/omarchy-yazelix`
+- `~/.local/bin/omarchy-yazelix-theme-sync`
+- `~/.local/bin/omarchy-yazelix-serpl`
 - `~/.local/share/applications/*.desktop`
 - `~/.local/share/applications/icons/*.png`
 - `~/.config/systemd/user/chatterbox-tts.service`
 - `~/.config/omarchy/themes/retro-82/helix.toml`
+- `~/.config/omarchy/hooks/theme-set.d/yazelix`
 
 ### Omarchy hook injection target
 
@@ -97,3 +101,19 @@ $EDITOR ~/.config/work-vpn/config
 ```
 
 The config file and keyring password are intentionally outside this repository. The launcher supports an OpenConnect auth group, AnyConnect-style user agent, and `--no-external-auth` defaults. It backgrounds OpenConnect after authentication and runs `resolvectl dnsovertls tun0 no` from the OpenConnect connect hook. Use `omarchy-work-vpn command` to preview the exact OpenConnect argv without secrets.
+
+## Yazelix
+
+The Yazelix launcher is managed as `~/.local/bin/omarchy-yazelix` and appears in app launchers as `Yazelix`.
+
+One-time setup:
+
+```bash
+omarchy-yazelix install
+```
+
+If Nix is not installed yet, the helper prints the Omarchy/Arch setup commands. See `docs/yazelix.md` for update and variant notes.
+
+Yazelix theme integration is managed by `~/.local/bin/omarchy-yazelix-theme-sync` and the Omarchy `theme-set.d/yazelix` hook. It syncs the active Omarchy palette into Yazelix's Ghostty overrides, Zellij theme, and managed Helix theme.
+
+Yazelix-managed Helix exposes article-style tools under `Space q`: `q/v/s` open selected files from Yazi in the current view, vertical split, or horizontal split, and `r` opens SERPL for project-wide search/replace.

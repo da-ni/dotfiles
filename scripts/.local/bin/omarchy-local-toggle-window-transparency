@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${HOME}/.local/state/omarchy/toggles/hypr"
+state_file="${state_dir}/window-transparency.conf"
+
+mkdir -p "$state_dir"
+
+if [[ -f "$state_file" ]]; then
+  rm -f "$state_file"
+  notify-send -u low "Window transparency reset"
+else
+  cat >"$state_file" <<'EOF'
+windowrule = opacity 0.92 0.72, match:class .*
+EOF
+  notify-send -u low "Window transparency enabled"
+fi
+
+hyprctl reload

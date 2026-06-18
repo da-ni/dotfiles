@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="Yazelix"
+DEFAULT_FLAKE_REF="github:luccahuguet/yazelix#yazelix"
+FLAKE_REF="${YAZELIX_FLAKE_REF:-$DEFAULT_FLAKE_REF}"
+
+usage() {
+  cat <<'USAGE'
+Usage: omarchy-yazelix <install|launch|update|status|nix-help> [args...]
+
+Commands:
+  install   Install Yazelix into the default Nix profile
+  launch    Launch Yazelix, installing first if yzx is missing
+  update    Update the installed Yazelix profile entry
+  status    Print installed Yazelix/runtime status
+  nix-help  Show Nix setup guidance for Omarchy
+
+Environment:
+  YAZELIX_FLAKE_REF  Override the package flake ref
+                    (default: github:luccahuguet/yazelix#yazelix)
+USAGE
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "$APP_NAME" "$1"
+  fi
+}
+
+die() {
+  notify "$1"
+  printf 'Error: %s\n' "$1" >&2
+  exit 1
+}
+
+profile_path() {
+  export PATH="$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
+}
+
+nix_help() {
+  cat <<'EOF'
+Yazelix needs Nix with flakes enabled.
+
+Omarchy/Arch setup:
+  omarchy pkg add nix
+  sudo systemctl enable --now nix-daemon.service
+
+Then open a fresh shell and run:
+  omarchy-yazelix install
+
+Upstream's recommended installer is also supported:
+  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+
+After installing Nix, verify:
+  nix --version
+EOF
+}
+
+ensure_nix() {
+  profile_path
+  command -v nix >/dev/null 2>&1 && return 0
+
+  nix_help >&2
+  die "Nix is not installed yet."
+}
+
+ensure_flakes_config() {
+  local nix_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/nix"
+  local nix_config_file="$nix_config_dir/nix.conf"
+
+  if nix config show experimental-features 2>/dev/null | grep -Eq '(^|[[:space:]])flakes($|[[:space:]])'; then
+    return 0
+  fi
+
+  mkdir -p "$nix_config_dir"
+
+  if [[ -f "$nix_config_file" ]] && grep -Eq '^[[:space:]]*experimental-features[[:space:]]*=' "$nix_config_file"; then
+    printf 'Nix config already has experimental-features. Ensure it includes: nix-command flakes\n' >&2
+    return 0
+  fi
+
+  {
+    printf '\n'
+    printf 'experimental-features = nix-command flakes\n'
+  } >>"$nix_config_file"
+}
+
+install_yazelix() {
+  ensure_nix
+  ensure_flakes_config
+
+  nix profile add --accept-flake-config --refresh "$FLAKE_REF"
+  profile_path
+  command -v yzx >/dev/null 2>&1 || die "Yazelix installed, but yzx is not on PATH. Open a fresh shell and retry."
+
+  notify "Installed Yazelix."
+  yzx status --versions || true
+}
+
+launch_yazelix() {
+  profile_path
+  if ! command -v yzx >/dev/null 2>&1; then
+    install_yazelix
+  fi
+
+  exec yzx launch "$@"
+}
+
+update_yazelix() {
+  profile_path
+  command -v yzx >/dev/null 2>&1 || die "Yazelix is not installed yet. Run: omarchy-yazelix install"
+  yzx update upstream
+}
+
+status_yazelix() {
+  profile_path
+  if command -v nix >/dev/null 2>&1; then
+    nix --version
+  else
+    printf 'nix: missing\n'
+  fi
+
+  if command -v yzx >/dev/null 2>&1; then
+    yzx status --versions
+  else
+    printf 'yzx: missing\n'
+  fi
+}
+
+main() {
+  local command="${1:-launch}"
+  [[ $# -gt 0 ]] && shift
+
+  case "$command" in
+    install) install_yazelix "$@" ;;
+    launch) launch_yazelix "$@" ;;
+    update) update_yazelix "$@" ;;
+    status) status_yazelix "$@" ;;
+    nix-help) nix_help ;;
+    -h|--help|help) usage ;;
+    *) die "Unknown command: $command" ;;
+  esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

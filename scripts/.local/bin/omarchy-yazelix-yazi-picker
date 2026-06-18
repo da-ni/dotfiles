@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:-open}"
+log_file="${TMPDIR:-/tmp}/omarchy-yazelix-yazi-picker.log"
+chooser_file="$(mktemp)"
+
+log() {
+  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$log_file"
+}
+
+cleanup() {
+  rm -f -- "$chooser_file"
+}
+trap cleanup EXIT
+
+case "$mode" in
+  open|vsplit|hsplit) ;;
+  *)
+    printf 'Usage: omarchy-yazelix-yazi-picker [open|vsplit|hsplit]\n' >&2
+    exit 2
+    ;;
+esac
+
+export PATH="${YAZELIX_RUNTIME_DIR:-}/toolbin:${YAZELIX_RUNTIME_DIR:-}/bin:$HOME/.local/state/nix/profile/bin:$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
+
+editor_pane_id() {
+  local pane_id=""
+
+  if [[ -n "${YAZELIX_STATUS_BAR_CACHE_PATH:-}" && -r "$YAZELIX_STATUS_BAR_CACHE_PATH" ]] && command -v jq >/dev/null 2>&1; then
+    pane_id="$(jq -r '.status_bus.managed_panes.editor_pane_id // empty' "$YAZELIX_STATUS_BAR_CACHE_PATH" 2>/dev/null || true)"
+  fi
+
+  pane_id="${pane_id//:/_}"
+  [[ -n "$pane_id" ]] && printf '%s\n' "$pane_id"
+}
+
+shell_quote_path() {
+  local path="$1"
+  printf '%q ' "$path"
+}
+
+yazi --chooser-file="$chooser_file"
+
+paths=""
+if [[ -s "$chooser_file" ]]; then
+  while IFS= read -r selected || [[ -n "$selected" ]]; do
+    paths+="$(shell_quote_path "$selected")"
+  done <"$chooser_file"
+fi
+
+pane_id="$(editor_pane_id)"
+
+log "mode=$mode zellij_pane=${ZELLIJ_PANE_ID:-unset} status_cache=${YAZELIX_STATUS_BAR_CACHE_PATH:-unset} chooser_file=$chooser_file chooser_size=$(wc -c <"$chooser_file" 2>/dev/null || printf 0) editor_pane=$pane_id paths=$paths"
+
+if ! command -v zellij >/dev/null 2>&1; then
+  log "zellij not found on PATH=$PATH"
+  exit 1
+fi
+
+if zellij action hide-floating-panes; then
+  log "hide-floating-panes ok"
+else
+  log "hide-floating-panes failed status=$?"
+fi
+
+[[ -n "$paths" ]] || exit 0
+
+if [[ -z "$pane_id" ]]; then
+  log "missing editor pane id"
+  exit 1
+fi
+
+if zellij action write --pane-id "$pane_id" 27; then
+  log "escape write ok"
+else
+  log "escape write failed status=$?"
+fi
+
+if zellij action write-chars --pane-id "$pane_id" ":$mode $paths"; then
+  log "command write ok command=:$mode $paths"
+else
+  log "command write failed status=$?"
+fi
+
+if zellij action write --pane-id "$pane_id" 13; then
+  log "enter write ok"
+else
+  log "enter write failed status=$?"
+fi
