@@ -29,6 +29,8 @@ menu="$(
 )"
 [ -n "${menu:-}" ] || exit 1
 
+# --delimiter='\t' is fzf's tab regex; --with-nth=1 shows only the display column, hiding the
+# action/value fields the caller parses from the full line.
 sel="$(printf '%s\n' "$menu" | fzf --with-nth=1 --delimiter='\t' \
         --prompt 'project> ' --header 'switch (●) or open (+) · Enter selects · Esc cancels')" || exit 1
 [ -n "${sel:-}" ] || exit 1

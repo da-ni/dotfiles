@@ -21,6 +21,7 @@ tid=$(printf '%s' "$line" | cut -f1); twin=$(printf '%s' "$line" | cut -f3)
 # Reveal the terminal if it's hidden in a holding window.
 [ "$twin" != "$edwin" ] && HIDE_SESSION="$S" HIDE_SOCKET="$sock" hide-toggle terminal
 
+# '!!' is the shell's last-command recall — assumes bash/zsh with interactive history expansion.
 tmux send-keys -t "$tid" -l '!!'    # literal, so tmux doesn't treat it as a key name
 tmux send-keys -t "$tid" Enter
 

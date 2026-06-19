@@ -14,8 +14,10 @@ sock="${HIDE_SOCKET:-hide}"
 tmux() { command tmux -L "$sock" "$@"; }
 S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
 
-file="${target%%:*}"
-line="${target##*:}"; case "$line" in ''|*[!0-9]*) line="" ;; esac   # numeric line only
+# Split a trailing :LINE only when it's actually numeric; otherwise the whole target is the path
+# (so a filename legitimately containing ':' isn't truncated in the split modes).
+line="${target##*:}"
+case "$line" in ''|*[!0-9]*) line=""; file="$target" ;; *) file="${target%:*}" ;; esac
 
 ed=$(tmux list-panes -s -t "$S" -F '#{pane_id}	#{@role}	#{window_id}' | awk -F'\t' '$2=="editor"{print; exit}')
 [ -z "${ed:-}" ] && exit 0

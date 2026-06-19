@@ -34,6 +34,14 @@ root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$root" || exit 1
 name="$(basename "$root")"
 session="hide-${name//[^A-Za-z0-9_-]/_}"
+# Basename-collision guard: if a session with this name already exists for a DIFFERENT root,
+# suffix a short hash of the root so two same-named projects (e.g. ~/work/api and ~/play/api)
+# get distinct sessions instead of one silently attaching the other.
+if tmux -L "$sock" has-session -t "=$session" 2>/dev/null; then
+    existing_root="$(tmux -L "$sock" show-options -t "$session" -v @hide_root 2>/dev/null || true)"
+    [ -n "$existing_root" ] && [ "$existing_root" != "$root" ] && \
+        session="${session}-$(printf '%s' "$root" | cksum | cut -d' ' -f1 | cut -c1-4)"
+fi
 
 # HIDE_NO_ATTACH=1 → build/ensure the session, print its name, and DON'T attach. Used by the
 # unified switcher (hide-switch) to open a closed project from inside a running hide session,
