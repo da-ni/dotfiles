@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2
+
+- Fixed pane proportions when opening a project from the picker. Picker-opened projects are built detached then switched to, and `switch-client` rescales the window after the layout hook fires, so the agent and terminal came out oversized. The session is now built at the client's width and normalized explicitly, so the agent is a clean 30% and the terminal starts hidden, matching a direct launch.
+
 ## 1.1.1
 
 - Project picker (`Ctrl+Alt+W`): `Ctrl-X` closes the selected open project and refreshes the list in place, so you can close any open project without switching to it first. The current session is protected (use `Ctrl+Alt+Q` for that).

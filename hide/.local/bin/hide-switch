@@ -10,5 +10,13 @@ out="$(HIDE_SOCKET="$sock" HIDE_SESSION="$S" hide-pick)" || exit 0
 action="${out%%	*}"; value="${out#*	}"
 case "$action" in
     switch) tmux switch-client -t "=$value" ;;
-    open)   s="$(HIDE_NO_ATTACH=1 hide "$value")"; [ -n "${s:-}" ] && tmux switch-client -t "=$s" ;;
+    open)
+        # Build at the current client's width so switch-client needs no width rescale (which would
+        # race hide-init). Then normalize explicitly — the build leaves the terminal visible.
+        cols="$(tmux display -p -t "$S" '#{window_width}' 2>/dev/null)"
+        s="$(HIDE_NO_ATTACH=1 HIDE_BUILD_COLS="$cols" hide "$value")"
+        [ -n "${s:-}" ] || exit 0
+        tmux switch-client -t "=$s"
+        HIDE_SESSION="$s" HIDE_SOCKET="$sock" hide-init
+        ;;
 esac

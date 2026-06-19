@@ -94,8 +94,13 @@ if tmux -L "$sock" has-session -t "=$session" 2>/dev/null; then
     exec tmux -L "$sock" attach -t "$session"
 fi
 
-# Build the fixed layout, detached, then attach.
-tmux -L "$sock" -f "$conf" new-session -d -s "$session" -n main -c "$root" "helix ."
+# Build the fixed layout, detached, then attach. HIDE_BUILD_COLS (set by the in-session switcher)
+# builds the window AT the client's width, so the splits land at the right proportions and the
+# later switch-client has no width resize to do — otherwise that rescale races hide-init and the
+# agent/terminal end up the wrong size. Height resizes harmlessly (the terminal gets hidden).
+build_size=()
+[ -n "${HIDE_BUILD_COLS:-}" ] && build_size+=(-x "$HIDE_BUILD_COLS")
+tmux -L "$sock" -f "$conf" new-session -d -s "$session" -n main -c "$root" "${build_size[@]}" "helix ."
 ed=$(tmux -L "$sock" list-panes -t "$session" -F '#{pane_id}' | head -1)
 term=$(tmux -L "$sock" split-window -v -l 1   -t "$ed" -c "$root" -P -F '#{pane_id}')
 agent=$(tmux -L "$sock" split-window -h -l 30% -t "$ed" -c "$root" -P -F '#{pane_id}' "codex")
