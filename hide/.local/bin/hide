@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# hide — Helix IDE on tmux. Fixed 3-pane layout, toggleable panes, owned & minimal.
+#   [ editor (Helix) | agent (Codex) ]
+#   [ terminal (toggles open/closed)  ]
+# Usage: hide [dir]   dir defaults to $PWD; resolves to the git root if inside a repo.
+# Runs on a dedicated tmux socket ("hide") so it never collides with other tmux.
+set -uo pipefail
+
+cfg="${HIDE_CONFIG_DIR:-$HOME/.config/hide}"
+conf="$cfg/tmux.conf"
+sock=hide
+
+target="${1:-$PWD}"
+cd "$target" 2>/dev/null || { printf 'hide: no such dir: %s\n' "$target" >&2; exit 1; }
+root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$root" || exit 1
+name="$(basename "$root")"
+session="hide-${name//[^A-Za-z0-9_-]/_}"
+
+# Already running for this project? Attach.
+if tmux -L "$sock" has-session -t "=$session" 2>/dev/null; then
+    exec tmux -L "$sock" attach -t "$session"
+fi
+
+# Build the fixed layout, detached, then attach.
+tmux -L "$sock" -f "$conf" new-session -d -s "$session" -n main -c "$root" "helix ."
+ed=$(tmux -L "$sock" list-panes -t "$session" -F '#{pane_id}' | head -1)
+term=$(tmux -L "$sock" split-window -v -l 1   -t "$ed" -c "$root" -P -F '#{pane_id}')
+agent=$(tmux -L "$sock" split-window -h -l 30% -t "$ed" -c "$root" -P -F '#{pane_id}' "codex")
+
+# Tag panes with a stable role (a pane user-option programs can't clobber, unlike titles).
+tmux -L "$sock" set-option -p -t "$ed"    @role editor
+tmux -L "$sock" set-option -p -t "$term"  @role terminal
+tmux -L "$sock" set-option -p -t "$agent" @role agent
+tmux -L "$sock" select-pane -t "$ed"    # land focus in the editor (the picker)
+
+exec tmux -L "$sock" attach -t "$session"

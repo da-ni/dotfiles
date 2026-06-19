@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# hide-init — canonical start layout, once per session (at the real attached size):
+# agent sidebar 30% wide, terminal hidden (zero footprint). Runs from client-attached.
+set -uo pipefail
+sock="${HIDE_SOCKET:-hide}"; S="${HIDE_SESSION:-}"
+tmux() { command tmux -L "$sock" "$@"; }
+st=(); [ -n "$S" ] && st=(-t "$S")
+
+[ "$(tmux show "${st[@]}" -v @hide_init 2>/dev/null)" = done ] && exit 0
+tmux set "${st[@]}" @hide_init done 2>/dev/null || true
+
+pid() { tmux list-panes -s "${st[@]}" -F '#{pane_id}	#{@role}' | awk -F'\t' -v r="$1" '$2==r{print $1; exit}'; }
+W=$(tmux display -p "${st[@]}" '#{window_width}')
+a=$(pid agent)
+[ -n "${a:-}" ] && tmux resize-pane -t "$a" -x $(( W * 30 / 100 ))
+# Start with the terminal fully hidden (VS Code style); first Ctrl+Space reveals it.
+HIDE_SESSION="$S" HIDE_SOCKET="$sock" hide-toggle terminal

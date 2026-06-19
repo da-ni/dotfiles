@@ -5,7 +5,7 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar ghostty voxtype applications systemd scripts omarchy)
+PACKAGES=(bash hypr waybar ghostty voxtype applications systemd scripts omarchy hide)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
 

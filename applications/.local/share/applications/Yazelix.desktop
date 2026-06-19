@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Name=Yazelix
-Comment=Launch the Yazelix terminal workspace
-Exec=omarchy-launch-floating-terminal-with-presentation omarchy-yazelix launch
-Terminal=false
-Type=Application
-Icon=utilities-terminal
-StartupNotify=true
