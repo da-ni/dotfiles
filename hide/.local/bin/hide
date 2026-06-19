@@ -13,6 +13,23 @@ cfg="${HIDE_CONFIG_DIR:-$HOME/.config/hide}"
 conf="$cfg/tmux.conf"
 sock=hide
 
+# Brief launch splash: cloud-face logo + 'h i d e' wordmark, centred, ~1s before the IDE takes
+# over. Tunable via HIDE_SPLASH_SECS (0 disables). Shown only on real attaches, never on the
+# HIDE_NO_ATTACH programmatic build path.
+splash() {
+    local secs="${HIDE_SPLASH_SECS:-1}"
+    [ "$secs" = 0 ] && return 0
+    local cols lines pad lpad i logo="😶‍🌫️  h i d e"
+    cols=$(tput cols 2>/dev/null || echo 80); lines=$(tput lines 2>/dev/null || echo 24)
+    pad=$(( lines / 2 - 1 )); [ "$pad" -lt 0 ] && pad=0
+    lpad=$(( (cols - 13) / 2 )); [ "$lpad" -lt 0 ] && lpad=0   # ~13 visible cells (emoji≈2 + '  h i d e')
+    printf '\033[2J\033[H'                                     # clear + cursor home
+    for ((i = 0; i < pad; i++)); do printf '\n'; done
+    printf '%*s\033[1m%s\033[0m' "$lpad" '' "$logo"
+    sleep "$secs"
+    printf '\033[2J\033[H'                                     # clear before tmux paints the IDE
+}
+
 # Resolve the target. Bare launch outside a repo opens the shared project picker (hide-pick) in
 # the raw terminal: pick an open project to attach, or a frecent zoxide dir to open. For a dir
 # zoxide doesn't know, pass it explicitly: `hide <path>`.
@@ -25,6 +42,7 @@ else
     if [ "${out%%	*}" = switch ]; then           # an already-open project -> attach it
         sess="${out#*	}"
         tmux -L "$sock" source-file "$conf"
+        splash
         exec tmux -L "$sock" attach -t "=$sess"
     fi
     target="${out#*	}"                            # a frecent dir -> fall through to resolve + build
@@ -52,6 +70,7 @@ noattach="${HIDE_NO_ATTACH:-}"
 if tmux -L "$sock" has-session -t "=$session" 2>/dev/null; then
     tmux -L "$sock" source-file "$conf"   # refresh binds/options even on an already-running server
     [ -n "$noattach" ] && { printf '%s\n' "$session"; exit 0; }
+    splash
     exec tmux -L "$sock" attach -t "$session"
 fi
 
@@ -71,4 +90,5 @@ tmux -L "$sock" select-pane -t "$ed"    # land focus in the editor (the picker)
 
 tmux -L "$sock" source-file "$conf"   # ensure latest config even if the server was already up
 [ -n "$noattach" ] && { printf '%s\n' "$session"; exit 0; }
+splash
 exec tmux -L "$sock" attach -t "$session"
