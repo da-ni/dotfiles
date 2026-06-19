@@ -1,12 +1,31 @@
 # hide — parked ideas & extended feature list
 
 Things worth doing later, harvested while building. Not committed to; a holding pen.
+**hide v1.0 is done (2026-06-19).** This list is the v2 candidate pool.
 
-## Near-term roadmap (agreed direction)
-- *(hsplit key — dropped 2026-06-19, Daniel never uses it. Bridge still supports `hsplit` if ever needed.)*
+## Candidate features — v1.0 idea scout (ranked, with fit verdict)
+Filtered through hide's ethos: minimal, owned, no plugins. Most of what yazelix/zellij
+setups ship is either bloat or something hide already does. The ones that survived:
 
-## Parked — decided low-value
-- **omarchy theme-sync (tmux only).** omarchy ships per-theme `helix.toml` + `colors.toml` but NO tmux file, so hide's status bar / pane borders / active highlight don't recolor on theme switch (they inherit terminal truecolor + one hardcoded dim grey). Sync = read `~/.config/omarchy/current/theme/colors.toml`, emit a tmux color snippet, re-source via omarchy `hooks/` on theme change. Low value: look's already solid and the borders inherit terminal colors. Helix already has a per-theme file and can follow omarchy on its own.
+1. **Scratch terminal popup** — `Ctrl+Alt+T` toggles a floating throwaway shell (its own
+   persistent session on the hide socket), for a quick command/note without disturbing the
+   project layout or the bottom terminal. *Verdict: best pick. Owned, trivial (reuse the
+   display-popup pattern), genuinely used.* Ref: tmux-toggle-scratch.
+2. **Reveal current file in the picker** — open the yazi file picker focused on the CURRENT
+   buffer's directory instead of project root. *Verdict: small, nice. Needs the editor pane's
+   cwd / current file, which Helix doesn't expose easily over tmux — check feasibility first.*
+   Ref: yazelix "reveal in sidebar".
+3. **zoxide-aware unified switcher** *(already parked below)* — pick open project → switch,
+   pick closed dir → launch. *Verdict: strong, folds two features into one.*
+4. **Simple command/task re-runner** — `Ctrl+Alt+;` re-runs the last shell command (or a
+   named `make`/test target) in the bottom terminal. *Verdict: useful but risks per-project
+   task-config scope creep — keep it to "re-run last" if built.*
+5. **Seamless Helix↔tmux navigation** — one keystroke crosses from a Helix edge-split into the
+   adjacent tmux pane (vim-tmux-navigator idea). *Verdict: nice polish, higher complexity
+   (must detect Helix is at its edge split). Lower priority.*
+
+Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/session-sharing
+(Daniel's solo), broad plugin systems, SSH parity (hide already works over SSH inherently).
 
 ## Parked (interesting, from the tmux-IDE community scout)
 - **zoxide-aware unified switcher (sesh's killer feature).** One picker that lists open hide projects AND frecent/known project dirs: pick an open one → switch; pick a closed dir → launch hide there. Would fold the bare-launch workspace picker and `Ctrl+Alt+W` into a single list. Ref: joshmedeski/sesh, 27medkamal/tmux-session-wizard.
@@ -24,3 +43,4 @@ Things worth doing later, harvested while building. Not committed to; a holding 
 - Project-wide search & replace via serpl (`Ctrl+Alt+R`, reloads Helix after).
 - Project tabs: status-bar strip + switcher popup (`Ctrl+Alt+W`).
 - Agent menu: switch the sidebar agent Codex / Claude Code / opencode (`Ctrl+Alt+A`, native display-menu).
+- omarchy theme-sync: confirmed already working (Daniel tested) — Helix follows omarchy's per-theme file; tmux chrome inherits terminal truecolor. No work needed.
