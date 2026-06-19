@@ -43,6 +43,7 @@ splash() {
         printf '%*s\033[1m%s\033[0m' "$lpad" '' "$logo"
     fi
 
+    printf '\033[?25l'                                         # re-hide: chafa emits its own ?25h at render end
     sleep "$secs"
     printf '\033[2J\033[H\033[?25h'                            # clear, restore cursor, before the picker/IDE
 }
