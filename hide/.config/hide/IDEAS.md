@@ -13,9 +13,10 @@ setups ship is either bloat or something hide already does. The ones that surviv
    pane's rendered statusline (breaks across splits/prompts/truncation). Not worth a fragile hack.
 3. ~~zoxide-aware unified switcher~~ — **DONE** (`Ctrl+Alt+W`). See Done list.
 4. ~~Command re-runner~~ — **DONE** (`Ctrl+Alt+E`). Kept to "re-run last" (`!!`), no task config.
-5. **Seamless Helix↔tmux navigation** — one keystroke crosses from a Helix edge-split into the
-   adjacent tmux pane (vim-tmux-navigator idea). *Verdict: nice polish, higher complexity
-   (must detect Helix is at its edge split). Lower priority.*
+5. ~~Seamless Helix↔tmux navigation~~ — **SKIPPED 2026-06-19.** Same wall as #2: vim-tmux-navigator
+   needs the editor to report its edge-split state to the multiplexer, which Helix (no plugin/IPC)
+   can't. A non-aware version would swallow keys at the edge instead of crossing to tmux — strictly
+   worse than the current clean split (Alt+hjkl = tmux panes, Ctrl+w = Helix splits).
 
 Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/session-sharing
 (Daniel's solo), broad plugin systems, SSH parity (hide already works over SSH inherently).
@@ -37,5 +38,6 @@ Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/sess
 - Project tabs: status-bar strip + switcher popup (`Ctrl+Alt+W`) — now a unified switcher: open projects (● switch) + zoxide frecent dirs (+ launch), deduped by @hide_root.
 - Agent menu: switch the sidebar agent Codex / Claude Code / opencode (`Ctrl+Alt+A`, native display-menu).
 - Command re-runner: re-run the last terminal command (`Ctrl+Alt+E`, `!!`), reveals the terminal if hidden, restores focus.
+- Keybind cheatsheet: floating overview of every hide keybind (`Ctrl+Alt+K`, any key closes).
 - omarchy theme-sync: confirmed already working (Daniel tested) — Helix follows omarchy's per-theme file; tmux chrome inherits terminal truecolor. No work needed.
 - Scratch shell popup: persistent floating throwaway terminal (`Ctrl+Alt+T`, toggle; own `scratch` session, status off, excluded from tabs).
