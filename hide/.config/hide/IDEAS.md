@@ -40,5 +40,7 @@ Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/sess
 - Keybind cheatsheet: floating overview of every hide keybind (`Ctrl+Alt+K`, any key closes).
 - Unified picker everywhere: bare `hide` launch now uses the same project picker (open projects + zoxide dirs) as `Ctrl+Alt+W`, via shared `hide-pick`. yazi-workspace retired.
 - Active-pane highlight: `pane-border-indicators both` (colour + arrows). Inactive-dim tried and dropped (full-colour TUIs ignore window-style).
+- Cloud-face logo (😶‍🌫️) + spaced `h i d e` wordmark in the status bar.
+- omarchy launcher: registered as a TUI app (`TUI.tile`) with the cloud-face emoji rendered to a Noto PNG icon. Stowed `.desktop` + hicolor icon, so it's reproducible. Launch from Super+Space.
 - omarchy theme-sync: confirmed already working (Daniel tested) — Helix follows omarchy's per-theme file; tmux chrome inherits terminal truecolor. No work needed.
 - Scratch shell popup: persistent floating throwaway terminal (`Ctrl+Alt+T`, toggle; own `scratch` session, status off, excluded from tabs).

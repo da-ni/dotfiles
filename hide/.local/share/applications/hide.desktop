@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=hide
+Comment=Helix IDE on tmux
+Exec=xdg-terminal-exec --app-id=TUI.tile -e bash -lc hide
+Terminal=false
+Type=Application
+Icon=hide
+StartupNotify=true
+Categories=Development;
+Keywords=editor;ide;helix;tmux;
