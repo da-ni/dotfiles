@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# hide-switch — popup picker to jump between open hide projects (one tmux session per project).
+# The community-standard switch UX (sesh / session-wizard), but owned and socket-correct: it only
+# ever talks to the dedicated 'hide' socket, and pulls in no external session manager.
+#   Display = project name (the 'hide-' prefix stripped); current project marked with ●.
+#   Enter switches the client to that session; Esc cancels.
+set -uo pipefail
+sock="${HIDE_SOCKET:-hide}"
+tmux() { command tmux -L "$sock" "$@"; }
+cur="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
+
+sel="$(
+  tmux list-sessions -F '#{session_name}' 2>/dev/null | grep '^hide-' \
+  | awk -v cur="$cur" '{ full=$0; disp=$0; sub(/^hide-/,"",disp);
+                         printf "%s %s\t%s\n", (full==cur?"●":" "), disp, full }' \
+  | fzf --with-nth=1 --delimiter='\t' \
+        --prompt 'project> ' --header 'switch hide project · Enter selects · Esc cancels' \
+  | cut -f2
+)" || exit 0
+[ -n "${sel:-}" ] && tmux switch-client -t "=$sel"

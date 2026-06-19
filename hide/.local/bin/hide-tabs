@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# hide-tabs — render the open hide projects as a browser-style tab strip for the status bar.
+# Called from status-left as #(hide-tabs #S). Current project is bracketed; others dotted.
+#   e.g.   codecrafters · [Documents] · dn
+# Plain text only (no #[] style tags — #() output isn't re-parsed for styles reliably).
+set -uo pipefail
+sock="${HIDE_SOCKET:-hide}"
+cur="${1:-}"   # current session name, passed by tmux as #S
+
+out=""
+while IFS= read -r full; do
+    [ -n "$full" ] || continue
+    disp="${full#hide-}"
+    if [ "$full" = "$cur" ]; then disp="[$disp]"; fi
+    out="${out:+$out · }$disp"
+done < <(command tmux -L "$sock" list-sessions -F '#{session_name}' 2>/dev/null | grep '^hide-' | sort)
+
+printf ' %s ' "$out"
