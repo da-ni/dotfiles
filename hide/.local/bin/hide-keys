@@ -4,7 +4,9 @@
 set -uo pipefail
 row() { printf '    %-13s%s\n' "$1" "$2"; }
 
-printf '\n  hide keybinds\n\n'
+printf '\033[?25l'                        # hide the cursor while the cheatsheet is up
+trap 'printf "\033[?25h"' EXIT            # restore it on exit (any key / interrupt)
+printf '\n'
 
 echo "  Panes"
 row "Ctrl+Space"  "toggle agent pane"
@@ -27,11 +29,11 @@ echo
 echo "  Projects"
 row "Ctrl+Alt+W"  "switch / open project"
 row "Ctrl+Alt+A"  "switch agent (Codex / Claude / opencode)"
-row "Ctrl+Alt+Q"  "close hide session"
 echo
 
-echo "  Help"
-row "Ctrl+Alt+K"  "this overview"
+echo "  General"
+row "Ctrl+Alt+K"  "keybind overview"
+row "Ctrl+Alt+Q"  "close hide session"
 echo
 printf '  (Helix splits: Ctrl+W then H/J/K/L)\n\n'
 printf '  press any key to close\n'

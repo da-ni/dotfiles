@@ -21,7 +21,7 @@ splash() {
     [ "$secs" = 0 ] && return 0
     local cols lines i icon="${HIDE_ICON:-$HOME/.local/share/icons/hicolor/128x128/apps/hide.png}"
     cols=$(tput cols 2>/dev/null || echo 80); lines=$(tput lines 2>/dev/null || echo 24)
-    printf '\033[2J\033[H'                                     # clear + cursor home
+    printf '\033[?25l\033[2J\033[H'                            # hide cursor, clear, home
 
     if command -v chafa >/dev/null 2>&1 && command -v figlet >/dev/null 2>&1 && [ -f "$icon" ]; then
         # Big render: the cloud-face PNG as block-art (chafa) above a big 'hide' wordmark (figlet).
@@ -44,7 +44,7 @@ splash() {
     fi
 
     sleep "$secs"
-    printf '\033[2J\033[H'                                     # clear before the picker / IDE paints
+    printf '\033[2J\033[H\033[?25h'                            # clear, restore cursor, before the picker/IDE
 }
 
 # Splash FIRST, so the launch sequence is: logo -> picker -> IDE. Skip on the HIDE_NO_ATTACH

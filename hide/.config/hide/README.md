@@ -56,7 +56,7 @@ Prefix-less. The cheatsheet is also live in-IDE on `Ctrl+Alt+K` (`hide-keys` is 
 | Ctrl+Alt+E | re-run last terminal command |
 | Ctrl+Alt+W | switch / open project |
 | Ctrl+Alt+A | switch agent (Codex / Claude / opencode) |
-| Ctrl+Alt+K | this cheatsheet |
+| Ctrl+Alt+K | keybind overview |
 | Ctrl+Alt+Q | close hide session |
 
 Helix splits use Helix's own `Ctrl+W` then `H/J/K/L`. hide never rebinds Helix's keymap (its power
