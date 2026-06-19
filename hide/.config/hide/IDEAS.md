@@ -12,9 +12,7 @@ setups ship is either bloat or something hide already does. The ones that surviv
    Helix exposes its current file nowhere tmux can read; the only route is scraping the editor
    pane's rendered statusline (breaks across splits/prompts/truncation). Not worth a fragile hack.
 3. ~~zoxide-aware unified switcher~~ — **DONE** (`Ctrl+Alt+W`). See Done list.
-4. **Simple command/task re-runner** — `Ctrl+Alt+;` re-runs the last shell command (or a
-   named `make`/test target) in the bottom terminal. *Verdict: useful but risks per-project
-   task-config scope creep — keep it to "re-run last" if built.*
+4. ~~Command re-runner~~ — **DONE** (`Ctrl+Alt+E`). Kept to "re-run last" (`!!`), no task config.
 5. **Seamless Helix↔tmux navigation** — one keystroke crosses from a Helix edge-split into the
    adjacent tmux pane (vim-tmux-navigator idea). *Verdict: nice polish, higher complexity
    (must detect Helix is at its edge split). Lower priority.*
@@ -38,5 +36,6 @@ Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/sess
 - Project-wide search & replace via serpl (`Ctrl+Alt+R`, reloads Helix after).
 - Project tabs: status-bar strip + switcher popup (`Ctrl+Alt+W`) — now a unified switcher: open projects (● switch) + zoxide frecent dirs (+ launch), deduped by @hide_root.
 - Agent menu: switch the sidebar agent Codex / Claude Code / opencode (`Ctrl+Alt+A`, native display-menu).
+- Command re-runner: re-run the last terminal command (`Ctrl+Alt+E`, `!!`), reveals the terminal if hidden, restores focus.
 - omarchy theme-sync: confirmed already working (Daniel tested) — Helix follows omarchy's per-theme file; tmux chrome inherits terminal truecolor. No work needed.
 - Scratch shell popup: persistent floating throwaway terminal (`Ctrl+Alt+T`, toggle; own `scratch` session, status off, excluded from tabs).
