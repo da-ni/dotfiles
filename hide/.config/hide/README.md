@@ -69,6 +69,9 @@ Required: `tmux` (3.2+ for pane-border-indicators; 3.6 tested), `helix`, `fzf`, 
 Per-feature: `lazygit` (git), `yazi` (file picker), `serpl` (search & replace), `zoxide` (project
 picker), `bat` (search preview). At least one agent: `codex`, `claude`, or `opencode`.
 
+Splash (optional): `chafa` + `figlet` render the big cloud-face logo + wordmark on launch. Absent,
+the splash falls back to a simple centred logo. Disable entirely with `HIDE_SPLASH_SECS=0`.
+
 ## Files
 
 - `~/.local/bin/hide` — launcher: resolves the target, builds the 3-pane layout, attaches.

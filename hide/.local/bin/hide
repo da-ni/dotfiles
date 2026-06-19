@@ -19,13 +19,30 @@ sock=hide
 splash() {
     local secs="${HIDE_SPLASH_SECS:-1}"
     [ "$secs" = 0 ] && return 0
-    local cols lines pad lpad i logo="😶‍🌫️  h i d e"
+    local cols lines i icon="${HIDE_ICON:-$HOME/.local/share/icons/hicolor/128x128/apps/hide.png}"
     cols=$(tput cols 2>/dev/null || echo 80); lines=$(tput lines 2>/dev/null || echo 24)
-    pad=$(( lines / 2 - 1 )); [ "$pad" -lt 0 ] && pad=0
-    lpad=$(( (cols - 13) / 2 )); [ "$lpad" -lt 0 ] && lpad=0   # ~13 visible cells (emoji≈2 + '  h i d e')
     printf '\033[2J\033[H'                                     # clear + cursor home
-    for ((i = 0; i < pad; i++)); do printf '\n'; done
-    printf '%*s\033[1m%s\033[0m' "$lpad" '' "$logo"
+
+    if command -v chafa >/dev/null 2>&1 && command -v figlet >/dev/null 2>&1 && [ -f "$icon" ]; then
+        # Big render: the cloud-face PNG as block-art (chafa) above a big 'hide' wordmark (figlet).
+        local imgw=28 img txt total pad lpad
+        img="$(chafa -s "${imgw}x14" -f symbols "$icon" 2>/dev/null)"
+        txt="$(figlet -c -w "$cols" hide 2>/dev/null)"
+        total=$(( $(printf '%s\n' "$img" | wc -l) + 1 + $(printf '%s\n' "$txt" | wc -l) ))
+        pad=$(( (lines - total) / 2 )); [ "$pad" -lt 0 ] && pad=0
+        lpad=$(( (cols - imgw) / 2 )); [ "$lpad" -lt 0 ] && lpad=0
+        for ((i = 0; i < pad; i++)); do printf '\n'; done
+        printf '%s\n' "$img" | while IFS= read -r l; do printf '%*s%s\n' "$lpad" '' "$l"; done
+        printf '\n%s\n' "$txt"                                 # figlet -c is already centred
+    else
+        # Fallback (chafa/figlet absent): the simple one-line centred logo.
+        local pad lpad logo="😶‍🌫️  h i d e"
+        pad=$(( lines / 2 - 1 )); [ "$pad" -lt 0 ] && pad=0
+        lpad=$(( (cols - 13) / 2 )); [ "$lpad" -lt 0 ] && lpad=0
+        for ((i = 0; i < pad; i++)); do printf '\n'; done
+        printf '%*s\033[1m%s\033[0m' "$lpad" '' "$logo"
+    fi
+
     sleep "$secs"
     printf '\033[2J\033[H'                                     # clear before the picker / IDE paints
 }
