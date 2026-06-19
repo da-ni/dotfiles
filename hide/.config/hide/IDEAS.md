@@ -3,8 +3,10 @@
 Things worth doing later, harvested while building. Not committed to; a holding pen.
 
 ## Near-term roadmap (agreed direction)
-- **hsplit key** — bridge already supports `hsplit`; just needs a non-conflicting bind (Alt+h is taken by pane-nav, so not Ctrl+Alt+H by reflex).
-- **omarchy theme-sync** — keep tmux + Helix themes in step with the omarchy theme. Low priority; current native theme already looks solid.
+- *(hsplit key — dropped 2026-06-19, Daniel never uses it. Bridge still supports `hsplit` if ever needed.)*
+
+## Parked — decided low-value
+- **omarchy theme-sync (tmux only).** omarchy ships per-theme `helix.toml` + `colors.toml` but NO tmux file, so hide's status bar / pane borders / active highlight don't recolor on theme switch (they inherit terminal truecolor + one hardcoded dim grey). Sync = read `~/.config/omarchy/current/theme/colors.toml`, emit a tmux color snippet, re-source via omarchy `hooks/` on theme change. Low value: look's already solid and the borders inherit terminal colors. Helix already has a per-theme file and can follow omarchy on its own.
 
 ## Parked (interesting, from the tmux-IDE community scout)
 - **zoxide-aware unified switcher (sesh's killer feature).** One picker that lists open hide projects AND frecent/known project dirs: pick an open one → switch; pick a closed dir → launch hide there. Would fold the bare-launch workspace picker and `Ctrl+Alt+W` into a single list. Ref: joshmedeski/sesh, 27medkamal/tmux-session-wizard.
