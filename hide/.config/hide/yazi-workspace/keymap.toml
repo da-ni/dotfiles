@@ -1,6 +1,0 @@
-# hide workspace picker keymap: Enter selects a folder (enter it, then quit -> --cwd-file
-# captures it and hide opens there). Navigation keys (h/l, arrows) keep their defaults.
-[mgr]
-prepend_keymap = [
-    { on = "<Enter>", run = [ "enter", "quit" ], desc = "Open this folder in hide" },
-]
