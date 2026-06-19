@@ -17,7 +17,7 @@ sock=hide
 # over. Tunable via HIDE_SPLASH_SECS (0 disables). Shown only on real attaches, never on the
 # HIDE_NO_ATTACH programmatic build path.
 splash() {
-    local secs="${HIDE_SPLASH_SECS:-1}"
+    local secs="${HIDE_SPLASH_SECS:-1.618}"   # golden ratio φ
     [ "$secs" = 0 ] && return 0
     local cols lines i icon="${HIDE_ICON:-$HOME/.local/share/icons/hicolor/128x128/apps/hide.png}"
     cols=$(tput cols 2>/dev/null || echo 80); lines=$(tput lines 2>/dev/null || echo 24)
