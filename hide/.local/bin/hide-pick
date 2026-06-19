@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# hide-pick — the shared project picker. Lists open hide projects (● switch) and frecent zoxide
+# dirs (+ open), deduped by @hide_root, and runs fzf. Prints the chosen line as:
+#   <action>\t<value>        action=switch value=<session> | action=open value=<dir>
+# Exit 1 (no output) if cancelled or nothing to pick. Used by BOTH the bare-launch picker (in the
+# raw terminal, before any tmux) and the in-session switcher (Ctrl+Alt+W, inside a popup). fzf
+# draws on /dev/tty either way, so command-substitution capture of the selection works.
+set -uo pipefail
+sock="${HIDE_SOCKET:-hide}"
+cur="${HIDE_SESSION:-}"
+tmux() { command tmux -L "$sock" "$@"; }
+
+opensess="$(tmux list-sessions -F '#{session_name}	#{@hide_root}' 2>/dev/null | grep '^hide-' || true)"
+declare -A openroot
+while IFS=$'\t' read -r s r; do [ -n "${r:-}" ] && openroot["$r"]=1; done <<<"$opensess"
+
+menu="$(
+  while IFS=$'\t' read -r s r; do
+    [ -n "${s:-}" ] || continue
+    disp="${s#hide-}"; [ "$s" = "$cur" ] && disp="$disp ·current"
+    printf '● %s\tswitch\t%s\n' "$disp" "$s"
+  done <<<"$opensess"
+  command -v zoxide >/dev/null 2>&1 && zoxide query -l 2>/dev/null | while IFS= read -r d; do
+    [ -d "$d" ] || continue
+    [ -n "${openroot[$d]:-}" ] && continue
+    case "$d" in "$HOME"/*) disp="~${d#"$HOME"}" ;; *) disp="$d" ;; esac
+    printf '+ %s\topen\t%s\n' "$disp" "$d"
+  done
+)"
+[ -n "${menu:-}" ] || exit 1
+
+sel="$(printf '%s\n' "$menu" | fzf --with-nth=1 --delimiter='\t' \
+        --prompt 'project> ' --header 'switch (●) or open (+) · Enter selects · Esc cancels')" || exit 1
+[ -n "${sel:-}" ] || exit 1
+printf '%s\t%s\n' "$(printf '%s' "$sel" | cut -f2)" "$(printf '%s' "$sel" | cut -f3)"

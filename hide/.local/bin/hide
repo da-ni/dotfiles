@@ -5,7 +5,7 @@
 # Usage: hide [dir]
 #   hide <dir>      open that dir (resolved to its git root if inside a repo)
 #   hide  (in repo) open the current repo
-#   hide  (bare)    open a yazi workspace picker: navigate to a project, quit, it opens there
+#   hide  (bare)    open the project picker: attach an open project, or open a frecent (zoxide) dir
 # Runs on a dedicated tmux socket ("hide") so it never collides with other tmux.
 set -uo pipefail
 
@@ -13,20 +13,21 @@ cfg="${HIDE_CONFIG_DIR:-$HOME/.config/hide}"
 conf="$cfg/tmux.conf"
 sock=hide
 
-# Resolve the target dir. Bare launch outside a repo opens the yazi workspace picker — and
-# since there's no tmux yet, yazi runs in the raw terminal (no popup, no terminal-probe TRT).
+# Resolve the target. Bare launch outside a repo opens the shared project picker (hide-pick) in
+# the raw terminal: pick an open project to attach, or a frecent zoxide dir to open. For a dir
+# zoxide doesn't know, pass it explicitly: `hide <path>`.
 if [ -n "${1:-}" ]; then
     target="$1"
 elif git rev-parse --show-toplevel >/dev/null 2>&1; then
     target="$PWD"
 else
-    # Pick a workspace with yazi: navigate INTO a project, press q. yazi --cwd-file is a full
-    # file manager, so EDITOR/VISUAL are neutered here — hitting Enter on a file must NOT spawn
-    # a bare Helix outside hide (that was the "yazi opens Helix, no tmux" bug). q captures the dir.
-    cwdf="$(mktemp)"
-    EDITOR=true VISUAL=true YAZI_CONFIG_HOME="$cfg/yazi-workspace" yazi --cwd-file="$cwdf" "${HIDE_WORKSPACE_ROOT:-$HOME}"
-    target="$(cat "$cwdf" 2>/dev/null)"; rm -f "$cwdf"
-    [ -n "$target" ] && [ -d "$target" ] || { printf 'hide: no workspace selected\n' >&2; exit 0; }
+    out="$(HIDE_SOCKET="$sock" hide-pick)" || { printf 'hide: no project selected\n' >&2; exit 0; }
+    if [ "${out%%	*}" = switch ]; then           # an already-open project -> attach it
+        sess="${out#*	}"
+        tmux -L "$sock" source-file "$conf"
+        exec tmux -L "$sock" attach -t "=$sess"
+    fi
+    target="${out#*	}"                            # a frecent dir -> fall through to resolve + build
 fi
 cd "$target" 2>/dev/null || { printf 'hide: no such dir: %s\n' "$target" >&2; exit 1; }
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"

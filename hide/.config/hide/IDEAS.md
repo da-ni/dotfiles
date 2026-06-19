@@ -22,7 +22,6 @@ Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/sess
 (Daniel's solo), broad plugin systems, SSH parity (hide already works over SSH inherently).
 
 ## Parked (interesting, from the tmux-IDE community scout)
-- **Fold the bare-launch workspace picker into the unified switcher.** `Ctrl+Alt+W` now lists open projects + zoxide dirs (done). Still separate: the bare-`hide` launch uses the yazi filesystem browser. Could offer the zoxide list there too, with yazi as the "browse anywhere" fallback. Deferred — the yazi browser is the escape hatch for dirs zoxide doesn't know.
 - **Project persistence across reboot.** Remember which projects were open and restore the set (tmux-resurrect-style, but scoped to the hide socket).
 - **Prev/next project cycle keys.** `Ctrl+Alt+[` / `Ctrl+Alt+]` to step through the tab strip without opening the picker. Complements, doesn't replace, `Ctrl+Alt+W`.
 - **Config UI popup.** A small in-IDE settings menu (yazelix has one): toggle agent, theme, layout ratios. The agent menu is the first slice of this.
@@ -39,5 +38,7 @@ Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/sess
 - Agent menu: switch the sidebar agent Codex / Claude Code / opencode (`Ctrl+Alt+A`, native display-menu).
 - Command re-runner: re-run the last terminal command (`Ctrl+Alt+E`, `!!`), reveals the terminal if hidden, restores focus.
 - Keybind cheatsheet: floating overview of every hide keybind (`Ctrl+Alt+K`, any key closes).
+- Unified picker everywhere: bare `hide` launch now uses the same project picker (open projects + zoxide dirs) as `Ctrl+Alt+W`, via shared `hide-pick`. yazi-workspace retired.
+- Active-pane highlight: `pane-border-indicators both` (colour + arrows). Inactive-dim tried and dropped (full-colour TUIs ignore window-style).
 - omarchy theme-sync: confirmed already working (Daniel tested) — Helix follows omarchy's per-theme file; tmux chrome inherits terminal truecolor. No work needed.
 - Scratch shell popup: persistent floating throwaway terminal (`Ctrl+Alt+T`, toggle; own `scratch` session, status off, excluded from tabs).

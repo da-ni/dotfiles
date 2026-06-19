@@ -1,42 +1,13 @@
 #!/usr/bin/env bash
-# hide-switch — unified project switcher (the sesh idea, owned). One picker lists:
-#   ● open hide projects   -> switch-client to them
-#   + frecent zoxide dirs   -> launch hide there (HIDE_NO_ATTACH), then switch-client
-# Open projects are deduped against zoxide by their @hide_root. Socket-correct (-L hide).
-# Falls back to open-only if zoxide isn't installed.
+# hide-switch — in-session project switcher (Ctrl+Alt+W). Gets a choice from the shared picker
+# (hide-pick), then acts: switch to an open project, or launch a frecent dir and switch to it.
 set -uo pipefail
 sock="${HIDE_SOCKET:-hide}"
 tmux() { command tmux -L "$sock" "$@"; }
-cur="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
+S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
 
-# Open projects + their roots (to dedup zoxide entries that are already open).
-opensess="$(tmux list-sessions -F '#{session_name}	#{@hide_root}' 2>/dev/null | grep '^hide-' || true)"
-declare -A openroot
-while IFS=$'\t' read -r s r; do [ -n "${r:-}" ] && openroot["$r"]=1; done <<<"$opensess"
-
-menu="$(
-  # open projects first
-  while IFS=$'\t' read -r s r; do
-    [ -n "${s:-}" ] || continue
-    disp="${s#hide-}"; [ "$s" = "$cur" ] && disp="$disp ·current"
-    printf '● %s\tswitch\t%s\n' "$disp" "$s"
-  done <<<"$opensess"
-  # then frecent dirs not already open
-  command -v zoxide >/dev/null 2>&1 && zoxide query -l 2>/dev/null | while IFS= read -r d; do
-    [ -d "$d" ] || continue
-    [ -n "${openroot[$d]:-}" ] && continue
-    case "$d" in "$HOME"/*) disp="~${d#"$HOME"}" ;; *) disp="$d" ;; esac   # ~ abbrev (no tilde-expansion trap)
-    printf '+ %s\topen\t%s\n' "$disp" "$d"
-  done
-)"
-[ -n "${menu:-}" ] || exit 0
-
-sel="$(printf '%s\n' "$menu" | fzf --with-nth=1 --delimiter='\t' \
-        --prompt 'project> ' --header 'switch (●) or open (+) · Enter selects · Esc cancels')" || exit 0
-[ -n "${sel:-}" ] || exit 0
-
-action="$(printf '%s' "$sel" | cut -f2)"
-value="$(printf '%s' "$sel" | cut -f3)"
+out="$(HIDE_SOCKET="$sock" HIDE_SESSION="$S" hide-pick)" || exit 0
+action="${out%%	*}"; value="${out#*	}"
 case "$action" in
     switch) tmux switch-client -t "=$value" ;;
     open)   s="$(HIDE_NO_ATTACH=1 hide "$value")"; [ -n "${s:-}" ] && tmux switch-client -t "=$s" ;;
