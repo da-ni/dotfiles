@@ -4,6 +4,9 @@
 set -uo pipefail
 sock="${HIDE_SOCKET:-hide}"; S="${HIDE_SESSION:-}"
 tmux() { command tmux -L "$sock" "$@"; }
+# Only normalize real project sessions. Auxiliary sessions on the socket (e.g. the scratch
+# popup) aren't 'hide-' prefixed and must be left alone — they have no editor/agent/terminal roles.
+case "$S" in hide-*) ;; *) exit 0 ;; esac
 st=(); [ -n "$S" ] && st=(-t "$S")
 
 [ "$(tmux show "${st[@]}" -v @hide_init 2>/dev/null)" = done ] && exit 0

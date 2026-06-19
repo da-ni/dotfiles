@@ -7,10 +7,7 @@ Things worth doing later, harvested while building. Not committed to; a holding 
 Filtered through hide's ethos: minimal, owned, no plugins. Most of what yazelix/zellij
 setups ship is either bloat or something hide already does. The ones that survived:
 
-1. **Scratch terminal popup** — `Ctrl+Alt+T` toggles a floating throwaway shell (its own
-   persistent session on the hide socket), for a quick command/note without disturbing the
-   project layout or the bottom terminal. *Verdict: best pick. Owned, trivial (reuse the
-   display-popup pattern), genuinely used.* Ref: tmux-toggle-scratch.
+1. ~~Scratch terminal popup~~ — **DONE** (`Ctrl+Alt+T`). See Done list.
 2. **Reveal current file in the picker** — open the yazi file picker focused on the CURRENT
    buffer's directory instead of project root. *Verdict: small, nice. Needs the editor pane's
    cwd / current file, which Helix doesn't expose easily over tmux — check feasibility first.*
@@ -44,3 +41,4 @@ Rejected as not-for-hide: launch benchmarking (yzx bench), pair-programming/sess
 - Project tabs: status-bar strip + switcher popup (`Ctrl+Alt+W`).
 - Agent menu: switch the sidebar agent Codex / Claude Code / opencode (`Ctrl+Alt+A`, native display-menu).
 - omarchy theme-sync: confirmed already working (Daniel tested) — Helix follows omarchy's per-theme file; tmux chrome inherits terminal truecolor. No work needed.
+- Scratch shell popup: persistent floating throwaway terminal (`Ctrl+Alt+T`, toggle; own `scratch` session, status off, excluded from tabs).
