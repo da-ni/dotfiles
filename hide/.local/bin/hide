@@ -34,9 +34,15 @@ cd "$root" || exit 1
 name="$(basename "$root")"
 session="hide-${name//[^A-Za-z0-9_-]/_}"
 
-# Already running for this project? Attach.
+# HIDE_NO_ATTACH=1 → build/ensure the session, print its name, and DON'T attach. Used by the
+# unified switcher (hide-switch) to open a closed project from inside a running hide session,
+# then switch-client to it. Keeps all session-building logic here (one source of truth).
+noattach="${HIDE_NO_ATTACH:-}"
+
+# Already running for this project? Attach (or just report it).
 if tmux -L "$sock" has-session -t "=$session" 2>/dev/null; then
     tmux -L "$sock" source-file "$conf"   # refresh binds/options even on an already-running server
+    [ -n "$noattach" ] && { printf '%s\n' "$session"; exit 0; }
     exec tmux -L "$sock" attach -t "$session"
 fi
 
@@ -55,4 +61,5 @@ tmux -L "$sock" set-option    -t "$session" @hide_root "$root"   # project root 
 tmux -L "$sock" select-pane -t "$ed"    # land focus in the editor (the picker)
 
 tmux -L "$sock" source-file "$conf"   # ensure latest config even if the server was already up
+[ -n "$noattach" ] && { printf '%s\n' "$session"; exit 0; }
 exec tmux -L "$sock" attach -t "$session"
