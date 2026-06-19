@@ -6,30 +6,22 @@
 # The mode is chosen at launch, NOT by an in-picker key: yazi's `shell` action does not fire in
 # this build (every documented form is a no-op), so the chooser-file is the only thing that
 # reliably reports the selection. Navigate as usual; Enter picks the file.
-#
-# Logs to $XDG_STATE_HOME/hide/hide-open.log (+ yazi's own debug log via YAZI_LOG).
 set -uo pipefail
 mode="${HIDE_OPEN_MODE:-open}"
 sock="${HIDE_SOCKET:-hide}"
 tmux() { command tmux -L "$sock" "$@"; }
 S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
 
-log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/hide"; mkdir -p "$log_dir"; log="$log_dir/hide-open.log"
-logln() { printf '%s  %s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$*" >>"$log"; }
-
 root="$(tmux show-options -t "$S" -v @hide_root 2>/dev/null)"
 [ -n "${root:-}" ] && cd "$root" 2>/dev/null
 
 export YAZI_CONFIG_HOME="${HIDE_CONFIG_DIR:-$HOME/.config/hide}/yazi"
-export YAZI_LOG="${YAZI_LOG:-debug}"
 export HIDE_SESSION="$S" HIDE_SOCKET="$sock"
-logln "── hide-open start  session=$S  mode=$mode  root=${root:-$PWD} ──"
 
 chooser="$(mktemp)"; trap 'rm -f "$chooser"' EXIT
-yazi --chooser-file="$chooser" . 2>>"$log"
+yazi --chooser-file="$chooser" . 2>/dev/null
 sel="$(head -n1 "$chooser" 2>/dev/null)"
-logln "selection='${sel:-}'"
-[ -z "${sel:-}" ] && { logln "no selection -> noop"; exit 0; }
+[ -z "${sel:-}" ] && exit 0
 # yazi returns picks from its search view as 'search://<args>//<abs-path>'. Extract the real path.
 case "$sel" in search://*) sel="$(printf '%s' "$sel" | sed -E 's#^search://[^/]*/##')";; esac
 
