@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# hide-search — project-wide live search (ripgrep + fzf) in a transient tmux window. Type to
+# grep across the project; Enter opens the match at its line in the Helix editor pane via
+# send-keys ':open file:line'. Same window+bridge pattern as hide-open (reliable, no popup
+# terminal-probe issues). Window closes when this script exits.
+set -uo pipefail
+sock="${HIDE_SOCKET:-hide}"
+tmux() { command tmux -L "$sock" "$@"; }
+S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
+
+log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/hide"; mkdir -p "$log_dir"; log="$log_dir/hide-search.log"
+logln() { printf '%s  %s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$*" >>"$log"; }
+logln "── hide-search start session=$S ──"
+
+root="$(tmux show-options -t "$S" -v @hide_root 2>/dev/null)"
+[ -n "${root:-}" ] && cd "$root" 2>/dev/null
+
+# Live ripgrep: fzf delegates filtering to rg on every keystroke (--disabled). fzf quotes {q}.
+RELOAD='reload:rg --line-number --no-heading --color=always --smart-case -- {q} || :'
+# --expect captures the accept key: Enter -> open, Ctrl+V -> vertical split.
+out="$(
+  fzf --ansi --disabled \
+      --expect=ctrl-v \
+      --bind "start:$RELOAD" --bind "change:$RELOAD" \
+      --delimiter : \
+      --preview 'bat --style=numbers --color=always --highlight-line {2} -- {1} 2>/dev/null || cat -- {1}' \
+      --preview-window 'right,55%,+{2}/2,~3' \
+      --prompt 'rg> ' --header 'project search · Enter opens · Ctrl+V vsplit · Esc cancels'
+)" || { logln "cancelled"; exit 0; }
+key="$(printf '%s\n' "$out" | sed -n 1p)"
+sel="$(printf '%s\n' "$out" | sed -n 2p)"
+[ -z "${sel:-}" ] && { logln "no selection"; exit 0; }
+
+file="${sel%%:*}"; rest="${sel#*:}"; line="${rest%%:*}"
+case "$key" in ctrl-v) mode=vsplit ;; *) mode=open ;; esac
+logln "key='$key' mode=$mode -> ${file}:${line}"
+HIDE_SESSION="$S" HIDE_SOCKET="$sock" hide-bridge "$mode" "${file}:${line}"

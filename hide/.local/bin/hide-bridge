@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# hide-bridge <open|vsplit|hsplit> <file[:line]> — open a target in the Helix editor pane.
+# Shared bridge for hide-open, hide-search, and yazi keybinds.
+#
+# Per the Helix docs: :open parses 'file:line', but :vsplit/:hsplit take a bare file only
+# (no :line). So for a split we open the file with :vsplit/:hsplit, let it settle, then jump
+# to the line with the normal-mode motion <line>G — NOT a second ':' command (sending two
+# ':' commands back-to-back races Helix's async file load and the dropped ':' turns the
+# command text into inserted garbage).
+set -uo pipefail
+mode="${1:?usage: hide-bridge <open|vsplit|hsplit> <file[:line]>}"
+target="${2:?}"
+sock="${HIDE_SOCKET:-hide}"
+tmux() { command tmux -L "$sock" "$@"; }
+S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
+
+file="${target%%:*}"
+line="${target##*:}"; case "$line" in ''|*[!0-9]*) line="" ;; esac   # numeric line only
+
+ed=$(tmux list-panes -s -t "$S" -F '#{pane_id}	#{@role}	#{window_id}' | awk -F'\t' '$2=="editor"{print; exit}')
+[ -z "${ed:-}" ] && exit 0
+pid=$(printf '%s' "$ed" | cut -f1); ewin=$(printf '%s' "$ed" | cut -f3)
+
+tmux send-keys -t "$pid" Escape
+case "$mode" in
+    open)
+        tmux send-keys -t "$pid" ":open $target" Enter        # :open parses :line itself
+        ;;
+    vsplit|hsplit)
+        tmux send-keys -t "$pid" ":$mode $file" Enter         # open the real file in the split
+        if [ -n "$line" ]; then
+            # pty preserves order: Helix finishes the :vsplit before reading these. <line>G is a
+            # motion (no ':' command), so no race and no sleep needed.
+            tmux send-keys -t "$pid" Escape
+            tmux send-keys -t "$pid" -l "${line}G"            # -l = literal, else tmux reads 42 as a repeat count
+        fi
+        ;;
+    *) echo "hide-bridge: bad mode '$mode'" >&2; exit 2 ;;
+esac
+tmux select-window -t "$ewin"; tmux select-pane -t "$pid"

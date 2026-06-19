@@ -1,43 +1,36 @@
 #!/usr/bin/env bash
-# hide-open — opens yazi as a transient full-window file picker (a real tmux window, NOT a
-# display-popup). yazi probes the terminal at startup (DA1/DSR/background-color) and that
-# round-trip is broken inside a popup -> "Terminal response timeout" + the tmux server dies.
-# A normal window round-trips fine (same as Helix/Codex). The file you pick opens in the
-# Helix editor pane via send-keys ':open <path>'; this window closes when the script exits.
+# hide-open — yazi file picker (a transient tmux window, chooser mode). The picked file opens
+# in the Helix editor pane via hide-bridge, in the mode given by HIDE_OPEN_MODE:
+#   open   (default) -> current view      [Ctrl+Alt+O]
+#   vsplit           -> vertical split    [Ctrl+Alt+V]
+# The mode is chosen at launch, NOT by an in-picker key: yazi's `shell` action does not fire in
+# this build (every documented form is a no-op), so the chooser-file is the only thing that
+# reliably reports the selection. Navigate as usual; Enter picks the file.
 #
 # Logs to $XDG_STATE_HOME/hide/hide-open.log (+ yazi's own debug log via YAZI_LOG).
 set -uo pipefail
+mode="${HIDE_OPEN_MODE:-open}"
 sock="${HIDE_SOCKET:-hide}"
 tmux() { command tmux -L "$sock" "$@"; }
-# Self-detect the session (display-popup/new-window -e does NOT expand #{} formats).
 S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
 
 log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/hide"; mkdir -p "$log_dir"; log="$log_dir/hide-open.log"
 logln() { printf '%s  %s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$*" >>"$log"; }
-logln "── hide-open start  session=$S socket=$sock ──"
 
-# Root at the project (cd, so we don't depend on new-window -c format expansion).
 root="$(tmux show-options -t "$S" -v @hide_root 2>/dev/null)"
 [ -n "${root:-}" ] && cd "$root" 2>/dev/null
-logln "root=${root:-$PWD}"
 
-chooser="$(mktemp)"; trap 'rm -f "$chooser"' EXIT
 export YAZI_CONFIG_HOME="${HIDE_CONFIG_DIR:-$HOME/.config/hide}/yazi"
 export YAZI_LOG="${YAZI_LOG:-debug}"
+export HIDE_SESSION="$S" HIDE_SOCKET="$sock"
+logln "── hide-open start  session=$S  mode=$mode  root=${root:-$PWD} ──"
+
+chooser="$(mktemp)"; trap 'rm -f "$chooser"' EXIT
 yazi --chooser-file="$chooser" . 2>>"$log"
-rc=$?
 sel="$(head -n1 "$chooser" 2>/dev/null)"
-logln "yazi exit=$rc raw='${sel:-}'"
+logln "selection='${sel:-}'"
 [ -z "${sel:-}" ] && { logln "no selection -> noop"; exit 0; }
 # yazi returns picks from its search view as 'search://<args>//<abs-path>'. Extract the real path.
-case "$sel" in search://*) sel="$(printf '%s' "$sel" | sed -E 's#^search://[^/]*/##')"; logln "stripped search:// -> '$sel'";; esac
+case "$sel" in search://*) sel="$(printf '%s' "$sel" | sed -E 's#^search://[^/]*/##')";; esac
 
-ed=$(tmux list-panes -s -t "$S" -F '#{pane_id}	#{@role}	#{window_id}' | awk -F'\t' '$2=="editor"{print; exit}')
-[ -z "${ed:-}" ] && { logln "no editor pane -> abort"; exit 0; }
-pid=$(printf '%s' "$ed" | cut -f1); ewin=$(printf '%s' "$ed" | cut -f3)
-# Drop out of any insert/prompt/picker state, then open the file in the current Helix view.
-tmux send-keys -t "$pid" Escape
-tmux send-keys -t "$pid" ":open $sel" Enter
-tmux select-window -t "$ewin"
-tmux select-pane -t "$pid"
-logln "opened '$sel' in editor $pid (win $ewin)"
+hide-bridge "$mode" "$sel"
