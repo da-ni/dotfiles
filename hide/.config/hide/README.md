@@ -1,6 +1,6 @@
 # hide — Helix IDE on tmux
 
-**Version 1.1**
+**Version 1.1.1**
 
 A minimal, owned terminal IDE. No plugins, no framework. Just tmux, Helix, and a handful of
 small scripts that wire in a file picker, search, git, an AI agent sidebar, and project switching.

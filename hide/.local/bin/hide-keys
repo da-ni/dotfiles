@@ -27,7 +27,7 @@ row "Ctrl+Alt+E"  "re-run last terminal command"
 echo
 
 echo "  Projects"
-row "Ctrl+Alt+W"  "switch / open project"
+row "Ctrl+Alt+W"  "switch / open / close project (Ctrl-X closes)"
 row "Ctrl+Alt+A"  "switch agent (Codex / Claude / opencode)"
 echo
 

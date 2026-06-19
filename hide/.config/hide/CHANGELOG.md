@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Project picker (`Ctrl+Alt+W`): `Ctrl-X` closes the selected open project and refreshes the list in place, so you can close any open project without switching to it first. The current session is protected (use `Ctrl+Alt+Q` for that).
+
 ## 1.1
 
 - Project-wide search and replace via serpl (`Ctrl+Alt+R`), reloads Helix after.
