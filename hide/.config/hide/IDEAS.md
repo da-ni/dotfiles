@@ -3,7 +3,6 @@
 Things worth doing later, harvested while building. Not committed to; a holding pen.
 
 ## Near-term roadmap (agreed direction)
-- **Agent config menu** — popup to switch the sidebar agent (Codex / Claude Code / opencode) for the current project. Could share a "config UI popup" surface (see below).
 - **hsplit key** — bridge already supports `hsplit`; just needs a non-conflicting bind (Alt+h is taken by pane-nav, so not Ctrl+Alt+H by reflex).
 - **omarchy theme-sync** — keep tmux + Helix themes in step with the omarchy theme. Low priority; current native theme already looks solid.
 
@@ -22,3 +21,4 @@ Things worth doing later, harvested while building. Not committed to; a holding 
 - Project-wide search (`Ctrl+Alt+F`, Enter / Ctrl+V).
 - Project-wide search & replace via serpl (`Ctrl+Alt+R`, reloads Helix after).
 - Project tabs: status-bar strip + switcher popup (`Ctrl+Alt+W`).
+- Agent menu: switch the sidebar agent Codex / Claude Code / opencode (`Ctrl+Alt+A`, native display-menu).

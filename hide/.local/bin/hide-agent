@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# hide-agent <command...> — swap the program running in the agent-role pane (Codex / Claude / opencode).
+# respawn-pane -k keeps the SAME pane id, so the @role tag, layout, and size all survive — only the
+# process is replaced. Bound via the Ctrl+Alt+A display-menu. Switching kills the current agent
+# process (and its conversation), which is the intended "start a different agent here" behaviour.
+set -uo pipefail
+cmd="${1:?usage: hide-agent <agent-command>}"
+sock="${HIDE_SOCKET:-hide}"
+tmux() { command tmux -L "$sock" "$@"; }
+S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
+
+ap=$(tmux list-panes -s -t "$S" -F '#{pane_id}	#{@role}' | awk -F'\t' '$2=="agent"{print $1; exit}')
+[ -n "${ap:-}" ] || exit 0
+root=$(tmux show-options -t "$S" -v @hide_root 2>/dev/null)
+
+tmux respawn-pane -k -t "$ap" -c "${root:-$HOME}" "$cmd"
+tmux select-pane -t "$ap"
