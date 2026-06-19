@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# hide-replace — project-wide search & replace (serpl) in a tmux popup, rooted at @hide_root.
+# serpl is a self-contained ratatui TUI: it runs its own ripgrep search and writes replacements
+# straight to disk. Because Helix has those files open as buffers, we ':reload-all' in the editor
+# pane on exit so the on-disk changes show up instead of going stale.
+#
+# serpl renders fine in a display-popup (no terminal-probe stall like yazi) — confirmed under tmux.
+set -uo pipefail
+sock="${HIDE_SOCKET:-hide}"
+tmux() { command tmux -L "$sock" "$@"; }
+S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
+
+root="$(tmux show-options -t "$S" -v @hide_root 2>/dev/null)"
+[ -n "${root:-}" ] || root="$PWD"
+
+serpl -p "$root"
+
+# Pull serpl's on-disk edits back into Helix's open buffers.
+HIDE_SESSION="$S" HIDE_SOCKET="$sock" hide-bridge reload

@@ -8,8 +8,8 @@
 # ':' commands back-to-back races Helix's async file load and the dropped ':' turns the
 # command text into inserted garbage).
 set -uo pipefail
-mode="${1:?usage: hide-bridge <open|vsplit|hsplit> <file[:line]>}"
-target="${2:?}"
+mode="${1:?usage: hide-bridge <open|vsplit|hsplit|reload> [file[:line]]}"
+target="${2:-}"   # not needed for 'reload'
 sock="${HIDE_SOCKET:-hide}"
 tmux() { command tmux -L "$sock" "$@"; }
 S="${HIDE_SESSION:-$(tmux display-message -p '#{session_name}' 2>/dev/null)}"
@@ -23,6 +23,11 @@ pid=$(printf '%s' "$ed" | cut -f1); ewin=$(printf '%s' "$ed" | cut -f3)
 
 tmux send-keys -t "$pid" Escape
 case "$mode" in
+    reload)
+        # serpl (and other on-disk editors) changed files under Helix; pull them back from disk.
+        tmux send-keys -t "$pid" ":reload-all" Enter
+        exit 0                                                # don't steal focus — popup already closed onto the editor
+        ;;
     open)
         tmux send-keys -t "$pid" ":open $target" Enter        # :open parses :line itself
         ;;
