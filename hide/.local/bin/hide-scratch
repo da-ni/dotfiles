@@ -16,4 +16,6 @@ fi
 
 # Unset TMUX so attaching inside the popup doesn't trip tmux's nested-session guard.
 unset TMUX TMUX_PANE
-exec command tmux -L "$sock" attach -t '=scratch'
+# NB: exec the tmux BINARY directly — `exec command tmux` fails because `command` is a shell
+# builtin (exec wants an external program), which exits 127 and flash-closes the popup.
+exec tmux -L "$sock" attach -t '=scratch'
