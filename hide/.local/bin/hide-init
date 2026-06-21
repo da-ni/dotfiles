@@ -14,7 +14,8 @@ st=(); [ -n "$S" ] && st=(-t "$S")
 pid() { tmux list-panes -s "${st[@]}" -F '#{pane_id}	#{@role}' | awk -F'\t' -v r="$1" '$2==r{print $1; exit}'; }
 W=$(tmux display -p "${st[@]}" '#{window_width}')
 a=$(pid agent)
-[ -n "${a:-}" ] && tmux resize-pane -t "$a" -x $(( W * 30 / 100 ))
+pct="${HIDE_AGENT_PCT:-22}"   # agent sidebar width %, mirrors the terminal toggle height (22%)
+[ -n "${a:-}" ] && tmux resize-pane -t "$a" -x $(( W * pct / 100 ))
 # Start with the terminal fully hidden (VS Code style); first Ctrl+Space reveals it.
 HIDE_SESSION="$S" HIDE_SOCKET="$sock" hide-toggle terminal
 # Mark initialized only AFTER the layout work, so a failed run retries on the next attach.

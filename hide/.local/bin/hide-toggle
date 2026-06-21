@@ -27,8 +27,8 @@ else
     # currently hidden -> show it back in position at its target size
     case "$role" in
         terminal) tmux join-pane -v -f -l 22% -s "$pid" -t "$ed" ;;  # full-width bottom
-        agent)    tmux join-pane -h    -l 30% -s "$pid" -t "$ed" ;;  # right of the editor
-        *)        tmux join-pane -h    -l 30% -s "$pid" -t "$ed" ;;
+        agent)    tmux join-pane -h -l "${HIDE_AGENT_PCT:-22}%" -s "$pid" -t "$ed" ;;  # right of the editor
+        *)        tmux join-pane -h -l "${HIDE_AGENT_PCT:-22}%" -s "$pid" -t "$ed" ;;
     esac
     tmux select-pane -t "$pid"
 fi

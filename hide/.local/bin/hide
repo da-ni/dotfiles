@@ -103,7 +103,7 @@ build_size=()
 tmux -L "$sock" -f "$conf" new-session -d -s "$session" -n main -c "$root" "${build_size[@]}" "helix ."
 ed=$(tmux -L "$sock" list-panes -t "$session" -F '#{pane_id}' | head -1)
 term=$(tmux -L "$sock" split-window -v -l 1   -t "$ed" -c "$root" -P -F '#{pane_id}')
-agent=$(tmux -L "$sock" split-window -h -l 30% -t "$ed" -c "$root" -P -F '#{pane_id}' "codex")
+agent=$(tmux -L "$sock" split-window -h -l "${HIDE_AGENT_PCT:-22}%" -t "$ed" -c "$root" -P -F '#{pane_id}' "codex")
 
 # Tag panes with a stable role (a pane user-option programs can't clobber, unlike titles).
 tmux -L "$sock" set-option -p -t "$ed"    @role editor
