@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# hide-usage — agent rate-limit gauge for the status bar, via the codexbar CLI. Shows the current
+# sidebar agent's two usage windows (5h + weekly): e.g. " codex  5h 1%  7d 16% ". The provider is
+# read from the @agent_provider session option (set by the launcher and the agent switcher).
+# Cached ~120s because codexbar hits the network. Prints nothing if codexbar/jq are missing, the
+# provider returns no data (e.g. Claude needs browser cookies, unavailable headless), or it fails.
+# NB: codexbar exposes account rate-limit windows, not live context-window usage.
+set -uo pipefail
+sock="${HIDE_SOCKET:-hide}"
+ttl="${HIDE_USAGE_TTL:-120}"
+S="${1:-}"
+
+command -v codexbar >/dev/null 2>&1 || exit 0
+command -v jq       >/dev/null 2>&1 || exit 0
+
+prov="codex"   # default agent
+if [ -n "$S" ]; then
+    p="$(command tmux -L "$sock" show-options -t "=$S" -v @agent_provider 2>/dev/null || true)"
+    [ -n "$p" ] && prov="$p"
+fi
+
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/hide/usage.$prov"
+mkdir -p "$(dirname "$cache")"
+if [ -f "$cache" ]; then
+    age=$(( $(date +%s) - $(stat -c %Y "$cache" 2>/dev/null || echo 0) ))
+    [ "$age" -lt "$ttl" ] && { cat "$cache"; exit 0; }
+fi
+
+data="$(timeout 20 codexbar usage --provider "$prov" --format json --source auto 2>/dev/null)" \
+    || { [ -f "$cache" ] && cat "$cache"; exit 0; }
+
+# primary = shorter window (5h), secondary = longer (weekly). Label derived from windowMinutes.
+label="$(printf '%s' "$data" | jq -r --arg p "$prov" '
+    .[0].usage as $u
+    | if ($u | type) != "object" or $u.primary == null then empty
+      else
+        def lbl(m): if ((m // 0) < 1440) then "\(((m // 0)/60)|floor)h" else "\(((m // 0)/1440)|floor)d" end;
+        " \($p)  \(lbl($u.primary.windowMinutes)) \($u.primary.usedPercent)%"
+        + (if $u.secondary == null then "" else "  \(lbl($u.secondary.windowMinutes)) \($u.secondary.usedPercent)%" end)
+        + " "
+      end' 2>/dev/null)"
+
+[ -n "$label" ] || { [ -f "$cache" ] && cat "$cache"; exit 0; }
+printf '%s' "$label" | tee "$cache"

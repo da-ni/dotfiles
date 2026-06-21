@@ -15,3 +15,4 @@ root=$(tmux show-options -t "$S" -v @hide_root 2>/dev/null)
 
 tmux respawn-pane -k -t "$ap" -c "${root:-$HOME}" "$cmd"
 tmux select-pane -t "$ap"
+tmux set-option -t "$S" @agent_provider "$cmd"   # so the usage gauge queries the right provider

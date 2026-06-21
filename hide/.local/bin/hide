@@ -111,6 +111,7 @@ tmux -L "$sock" set-option -p -t "$ed"    remain-on-exit on   # if Helix exits, 
 tmux -L "$sock" set-option -p -t "$term"  @role terminal
 tmux -L "$sock" set-option -p -t "$agent" @role agent
 tmux -L "$sock" set-option    -t "$session" @hide_root "$root"   # project root for popups
+tmux -L "$sock" set-option    -t "$session" @agent_provider codex   # usage gauge; updated by hide-agent
 tmux -L "$sock" select-pane -t "$ed"    # land focus in the editor (the picker)
 
 tmux -L "$sock" source-file "$conf"   # ensure latest config even if the server was already up

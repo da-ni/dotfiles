@@ -1,6 +1,6 @@
 # hide — Helix IDE on tmux
 
-**Version 1.1.2**
+**Version 1.2.0**
 
 A minimal, owned terminal IDE. No plugins, no framework. Just tmux, Helix, and a handful of
 small scripts that wire in a file picker, search, git, an AI agent sidebar, and project switching.
@@ -73,6 +73,12 @@ picker), `bat` (search preview). At least one agent: `codex`, `claude`, or `open
 
 Splash (optional): `chafa` + `figlet` render the big cloud-face logo + wordmark on launch. Absent,
 the splash falls back to a simple centred logo. Disable entirely with `HIDE_SPLASH_SECS=0`.
+
+Agent usage gauge (optional): the [`codexbar`](https://github.com/steipete/codexbar) CLI powers the
+status-bar gauge (bottom-right) showing the sidebar agent's 5-hour + weekly rate-limit windows. It
+reuses the agent CLI's existing auth (no extra login). Install the prebuilt Linux binary into
+`~/.local/bin` (or `yay -S codexbar-cli`). Absent, the gauge is simply blank. Codex works today;
+Claude usage needs browser cookies (blank headless), and live context-window usage isn't exposed.
 
 ## Files
 

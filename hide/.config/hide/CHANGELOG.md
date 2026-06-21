@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- Agent usage gauge on the status bar (bottom-right): the current sidebar agent's 5-hour and weekly rate-limit windows, e.g. ` codex  5h 1%  7d 16% `. Powered by the `codexbar` CLI (reuses the agent's existing auth, no extra login), cached ~120s, and it follows the agent via a new `@agent_provider` session option (set by the launcher and the `Ctrl+Alt+A` switcher). Codex works today; Claude needs browser cookies (blank headless), and live context-window usage isn't exposed by codexbar. Gauge is blank if `codexbar`/`jq` aren't installed.
+- Narrower agent sidebar default 30% -> 22% (from 1.1.x line), tunable via `HIDE_AGENT_PCT`.
+
 ## 1.1.2
 
 - Fixed pane proportions when opening a project from the picker. Picker-opened projects are built detached then switched to, and `switch-client` rescales the window after the layout hook fires, so the agent and terminal came out oversized. The session is now built at the client's width and normalized explicitly, so the agent is a clean 30% and the terminal starts hidden, matching a direct launch.
