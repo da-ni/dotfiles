@@ -71,6 +71,12 @@ fi
 cd "$target" 2>/dev/null || { printf 'hide: no such dir: %s\n' "$target" >&2; exit 1; }
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$root" || exit 1
+# Remember this project: record its root in zoxide so the picker (hide-pick reads `zoxide query -l`)
+# lists it next time, even after it's closed. Without this, a project opened only through hide never
+# enters the frecency DB and the picker "forgets" it. Runs for every open/attach path that reaches
+# here (explicit dir, in-repo, picker-open, re-attach); the bare-launch switch path is an already-open
+# session that was recorded when first built. Backgrounded so it never delays launch.
+command -v zoxide >/dev/null 2>&1 && zoxide add "$root" >/dev/null 2>&1 &
 name="$(basename "$root")"
 session="hide-${name//[^A-Za-z0-9_-]/_}"
 # Basename-collision guard: if a session with this name already exists for a DIFFERENT root,
