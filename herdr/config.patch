@@ -1,0 +1,25 @@
+--- config.toml
++++ config.toml
+@@ -9,5 +9,6 @@
+ # has to be dark for it to read - same colors as status-left's "#[fg=black,bg=blue]"
+ panel_bg = "black"
++overlay0 = "blue"
+ 
+ [terminal]
+ # Matches -c "#{pane_current_path}" on every split, window, and session
+@@ -68,11 +69,12 @@
+ next_workspace = ["prefix+shift+n", "alt+down"]
+ 
+ [ui]
+-accent = "blue"
++accent = "#faa968"
+ 
+ # tmux drew single-line dividers between adjacent panes and no outer frame
+-pane_gaps = false
+-pane_outer_borders = false
++pane_gaps = true
++pane_outer_borders = true
++show_agent_labels_on_pane_borders = true
+ 
+ # tmux had no scrollbar column beside its panes
+ pane_scrollbars = false

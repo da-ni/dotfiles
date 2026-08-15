@@ -7,6 +7,7 @@ Omarchy owns the desktop defaults. This repository keeps only personal overrides
 ## Managed configuration
 
 - `~/.bashrc`
+- `~/.config/herdr/config.toml`
 - `~/.config/hypr/bindings.lua`
 - `~/.config/hypr/input.lua`
 - `~/.config/hypr/autostart.lua`
@@ -15,7 +16,10 @@ Omarchy owns the desktop defaults. This repository keeps only personal overrides
 - `~/.config/omarchy/plugins/dn.work-vpn`
 - `~/.local/bin/omarchy-work-vpn`
 
-The Omarchy shell, bar layout, notifications, terminals, themes, and stock Hyprland entry point remain package-managed. Only the Work VPN plugin source is tracked.
+The Herdr configuration is generated from Omarchy's currently installed default plus
+`herdr/config.patch`, so new upstream bindings remain inherited. The Omarchy shell,
+bar layout, notifications, terminals, themes, and stock Hyprland entry point remain
+package-managed. Only the Work VPN plugin source is tracked.
 
 ## Prerequisites
 
@@ -23,6 +27,7 @@ Required:
 
 - Omarchy 4
 - GNU Stow
+- GNU patch
 
 Optional runtime dependencies:
 

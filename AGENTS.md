@@ -13,6 +13,7 @@ configuration that is genuinely personal or machine-specific.
 ## Managed Sources
 
 - `bash/.bashrc`: minimal Bash entry point that loads Omarchy defaults
+- `herdr/config.patch`: personal pane styling layered onto Omarchy's current Herdr config
 - `hypr/.config/hypr/bindings.lua`: personal application keybindings
 - `hypr/.config/hypr/input.lua`: personal input settings
 - `hypr/.config/hypr/autostart.lua`: starts the scheduled night-light service
@@ -22,7 +23,8 @@ configuration that is genuinely personal or machine-specific.
 - `work-vpn-shell/`: Quattro shell plugin source
 - `system/`: explicitly installed privileged VPN helper and sudoers rule
 
-The Bash, Hyprland, applications, and scripts packages are managed with GNU Stow. The VPN
+The Bash, Hyprland, applications, and scripts packages are managed with GNU Stow. The Herdr
+configuration is generated from Omarchy's current default plus the tracked patch. The VPN
 plugin is copied by `bootstrap.sh` because Quattro plugin discovery does not
 support the Stow directory-folding layout. Files under `system/` are not
 installed automatically.

@@ -7,6 +7,9 @@ DOTFILES_DIR="$SCRIPT_DIR"
 PACKAGES=(bash hypr applications scripts)
 WORK_VPN_PLUGIN_SOURCE="$DOTFILES_DIR/work-vpn-shell/.config/omarchy/plugins/dn.work-vpn"
 WORK_VPN_PLUGIN_TARGET="$HOME/.config/omarchy/plugins/dn.work-vpn"
+HERDR_CONFIG_BASE="/usr/share/omarchy/config/herdr/config.toml"
+HERDR_CONFIG_PATCH="$DOTFILES_DIR/herdr/config.patch"
+HERDR_CONFIG_TARGET="$HOME/.config/herdr/config.toml"
 
 err()  { printf 'Error: %s\n' "$*" >&2; }
 info() { printf '[*] %s\n' "$*"; }
@@ -17,6 +20,7 @@ Usage: bootstrap.sh [--dry-run|--apply|--install|--check|--doctor|--uninstall]
 
 Stows the Quattro-compatible personal configuration:
   ~/.bashrc
+  ~/.config/herdr/config.toml
   ~/.config/hypr/{bindings,input,autostart}.lua
   ~/.config/hypr/hyprsunset.conf
   ~/.local/share/applications/Netflix.desktop
@@ -65,6 +69,7 @@ run_stow() {
 ensure_dirs() {
   mkdir -p \
     "$HOME/.config/hypr" \
+    "$HOME/.config/herdr" \
     "$HOME/.config/omarchy/plugins" \
     "$HOME/.local/share/applications" \
     "$HOME/.local/bin"
@@ -80,6 +85,34 @@ ensure_executable_files() {
       [[ -e "$target" ]] && chmod +x "$target"
     done < <(find "$dir" -maxdepth 1 -type f -print0)
   done
+}
+
+render_herdr_config() {
+  local output="$1"
+  cp "$HERDR_CONFIG_BASE" "$output"
+  patch --forward --silent "$output" < "$HERDR_CONFIG_PATCH"
+}
+
+sync_herdr_config() {
+  local generated
+  generated="$(mktemp)"
+  render_herdr_config "$generated"
+  [[ -L $HERDR_CONFIG_TARGET ]] && unlink "$HERDR_CONFIG_TARGET"
+  install -m644 "$generated" "$HERDR_CONFIG_TARGET"
+  rm -f "$generated"
+}
+
+backup_herdr_config() {
+  local backup
+  [[ -e $HERDR_CONFIG_TARGET || -L $HERDR_CONFIG_TARGET ]] || return 0
+  backup="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)/.config/herdr/config.toml"
+  mkdir -p "$(dirname "$backup")"
+  mv -- "$HERDR_CONFIG_TARGET" "$backup"
+  info "Moved: $HERDR_CONFIG_TARGET -> $backup"
+}
+
+remove_herdr_config() {
+  [[ -e $HERDR_CONFIG_TARGET || -L $HERDR_CONFIG_TARGET ]] && rm -f "$HERDR_CONFIG_TARGET"
 }
 
 sync_work_vpn_plugin() {
@@ -206,6 +239,21 @@ doctor_stow_links() {
   ((issues > 0)) || doctor_pass "All Stow-managed targets resolve to repository sources"
 }
 
+doctor_herdr_config() {
+  local generated
+  generated="$(mktemp)"
+  if render_herdr_config "$generated"; then
+    if cmp -s "$generated" "$HERDR_CONFIG_TARGET"; then
+      doctor_pass "Installed Herdr config matches the current Omarchy default plus personal patch"
+    else
+      doctor_fail "Installed Herdr config is stale or differs from the personal patch"
+    fi
+  else
+    doctor_fail "Herdr patch no longer applies to the current Omarchy default"
+  fi
+  rm -f "$generated"
+}
+
 doctor_work_vpn_plugin() {
   local file issues=0
 
@@ -311,6 +359,7 @@ doctor_hyprland() {
 run_doctor() {
   printf 'Core tools\n'
   doctor_command stow
+  doctor_command patch
   doctor_command omarchy
   doctor_command openconnect
   doctor_command secret-tool optional
@@ -326,6 +375,7 @@ run_doctor() {
 
   printf '\nOmarchy\n'
   doctor_hyprland
+  doctor_herdr_config
   doctor_work_vpn_plugin
 
   printf '\nWork VPN\n'
@@ -346,6 +396,7 @@ printf 'Packages: %s\n\n' "${PACKAGES[*]}"
 case "$MODE" in
   dry-run)
     run_stow -n -R "${PACKAGES[@]}"
+    info "Would generate $HERDR_CONFIG_TARGET from the Omarchy default plus herdr/config.patch"
     info "Would sync Work VPN plugin to $WORK_VPN_PLUGIN_TARGET"
     ;;
   check)
@@ -355,6 +406,9 @@ case "$MODE" in
       err "Stow check failed."
       exit 2
     fi
+    generated="$(mktemp)"
+    render_herdr_config "$generated"
+    rm -f "$generated"
     omarchy plugin validate "$WORK_VPN_PLUGIN_SOURCE"
     ;;
   doctor)
@@ -363,18 +417,22 @@ case "$MODE" in
   install)
     ensure_dirs
     backup_conflicting_targets
+    backup_herdr_config
     run_stow -R "${PACKAGES[@]}"
     ensure_executable_files
+    sync_herdr_config
     sync_work_vpn_plugin
     ;;
   apply)
     ensure_dirs
     run_stow -R "${PACKAGES[@]}"
     ensure_executable_files
+    sync_herdr_config
     sync_work_vpn_plugin
     ;;
   uninstall)
     run_stow -D "${PACKAGES[@]}"
+    remove_herdr_config
     remove_work_vpn_plugin
     ;;
 esac
