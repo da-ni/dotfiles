@@ -4,7 +4,7 @@ set -euo pipefail
 MODE="apply"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr scripts)
+PACKAGES=(bash hypr applications scripts)
 WORK_VPN_PLUGIN_SOURCE="$DOTFILES_DIR/work-vpn-shell/.config/omarchy/plugins/dn.work-vpn"
 WORK_VPN_PLUGIN_TARGET="$HOME/.config/omarchy/plugins/dn.work-vpn"
 
@@ -19,6 +19,7 @@ Stows the Quattro-compatible personal configuration:
   ~/.bashrc
   ~/.config/hypr/{bindings,input,autostart}.lua
   ~/.config/hypr/hyprsunset.conf
+  ~/.local/share/applications/Netflix.desktop
   ~/.config/omarchy/plugins/dn.work-vpn
   ~/.local/bin/*
 
@@ -63,6 +64,7 @@ ensure_dirs() {
   mkdir -p \
     "$HOME/.config/hypr" \
     "$HOME/.config/omarchy/plugins" \
+    "$HOME/.local/share/applications" \
     "$HOME/.local/bin"
 }
 
@@ -90,6 +92,12 @@ sync_work_vpn_plugin() {
     "$WORK_VPN_PLUGIN_SOURCE/manifest.json" \
     "$WORK_VPN_PLUGIN_SOURCE/BarWidget.qml" \
     "$WORK_VPN_PLUGIN_TARGET/"
+}
+
+remove_work_vpn_plugin() {
+  if [[ -e "$WORK_VPN_PLUGIN_TARGET" || -L "$WORK_VPN_PLUGIN_TARGET" ]]; then
+    rm -rf -- "$WORK_VPN_PLUGIN_TARGET"
+  fi
 }
 
 collect_package_files() {
@@ -173,6 +181,7 @@ case "$MODE" in
     ;;
   uninstall)
     run_stow -D "${PACKAGES[@]}"
+    remove_work_vpn_plugin
     ;;
 esac
 

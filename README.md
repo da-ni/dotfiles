@@ -11,6 +11,7 @@ Omarchy owns the desktop defaults. This repository keeps only personal overrides
 - `~/.config/hypr/input.lua`
 - `~/.config/hypr/autostart.lua`
 - `~/.config/hypr/hyprsunset.conf`
+- Netflix launcher and icon under `~/.local/share/{applications,icons}`
 - `~/.config/omarchy/plugins/dn.work-vpn`
 - `~/.local/bin/omarchy-work-vpn`
 
@@ -25,12 +26,11 @@ Required:
 
 Optional runtime dependencies:
 
-- `openconnect`, `secret-tool`, `zenity` for the Work VPN launcher
+- `openconnect`, `secret-tool`, `zenity` for Work VPN
 - `voxtype` for the Menu-key dictation binding
 
-The Work VPN additionally uses the root-owned helper and scoped sudoers rule
-documented in `docs/work-vpn.md`; system files are installed explicitly and
-are not managed by Stow.
+Work VPN also uses the tracked root helper and disconnect-only sudoers rule.
+They are installed explicitly because Stow does not manage system paths.
 
 ## Usage
 
@@ -62,13 +62,13 @@ shell widget. Its configuration and keyring password
 intentionally stay outside this repository. The widget placement remains a
 machine-local Quattro setting rather than tracking `shell.json`.
 
-One-time setup:
+One-time setup, from the repository root:
 
 ```bash
 yay -S openconnect
+sudo install -Dm755 system/usr/local/libexec/omarchy-work-vpn-privileged /usr/local/libexec/omarchy-work-vpn-privileged
+sudo install -Dm440 system/etc/sudoers.d/omarchy-work-vpn /etc/sudoers.d/omarchy-work-vpn
 omarchy-work-vpn setup
 $EDITOR ~/.config/work-vpn/config
 omarchy plugin enable dn.work-vpn --section right --before omarchy.network
 ```
-
-Use `omarchy-work-vpn command` to preview the OpenConnect command without exposing secrets.

@@ -1,56 +1,67 @@
 # Dotfiles Agent Guide
 
-This repository manages personal Omarchy Quattro overrides with GNU Stow.
+This repository keeps a deliberately small set of personal Omarchy Quattro
+overrides. Omarchy owns the defaults; this repository should only contain
+configuration that is genuinely personal or machine-specific.
 
-## Instruction precedence
+## Instruction Precedence
 
 1. User task request
-2. `AGENTS.md`
+2. `AGENTS.md` (this file)
 3. Existing repository conventions
 
-## Project intent
+## Managed Sources
 
-- Let Omarchy own and update desktop defaults.
-- Keep only personal Hyprland overrides and the Work VPN integration here.
-- Edit repository sources, then re-apply with `./bootstrap.sh --apply`.
-- Do not edit `/usr/share/omarchy/`; reading it for reference is encouraged.
+- `bash/.bashrc`: minimal Bash entry point that loads Omarchy defaults
+- `hypr/.config/hypr/bindings.lua`: personal application keybindings
+- `hypr/.config/hypr/input.lua`: personal input settings
+- `hypr/.config/hypr/autostart.lua`: starts the scheduled night-light service
+- `hypr/.config/hypr/hyprsunset.conf`: personal night-light schedule
+- `applications/.local/share/`: searchable Netflix launcher and icon
+- `scripts/.local/bin/omarchy-work-vpn`: unprivileged VPN controller
+- `work-vpn-shell/`: Quattro shell plugin source
+- `system/`: explicitly installed privileged VPN helper and sudoers rule
 
-## Primary edit locations
+The Bash, Hyprland, applications, and scripts packages are managed with GNU Stow. The VPN
+plugin is copied by `bootstrap.sh` because Quattro plugin discovery does not
+support the Stow directory-folding layout. Files under `system/` are not
+installed automatically.
 
-- `bash/`
-- `hypr/.config/hypr/`
-- `scripts/`
-- `work-vpn-shell/`
-- `docs/`
+## Working Rules
 
-## Quattro boundaries
+- Edit repository sources, then run `./bootstrap.sh --apply`.
+- Do not edit generated targets in `$HOME` directly.
+- Keep machine-private VPN configuration and credentials out of Git.
+- Do not add overrides for behavior that current Omarchy already provides.
+- Preserve unrelated local changes and avoid destructive Git operations.
 
-- Hyprland overrides use Lua files such as `bindings.lua`, `input.lua`, and `autostart.lua`.
-- Do not restore legacy `.conf` source injection or `~/.config/hypr/custom/`.
-- Omarchy shell replaces Waybar; keep bar layout machine-local and track only the Work VPN plugin source.
-- Keep machine-private credentials and service-specific state outside the repository.
+## Commands
 
-## Safe workflow
+```bash
+./bootstrap.sh --dry-run
+./bootstrap.sh --check
+./bootstrap.sh --apply
+./bootstrap.sh --uninstall
+```
 
-1. Change repository-managed source files only.
-2. Run `./bootstrap.sh --check` when conflict risk exists.
-3. Run `./bootstrap.sh --apply` after changes.
-4. Verify only affected subsystems.
+After Hyprland changes, verify with:
 
-## Verification
+```bash
+hyprctl reload
+hyprctl configerrors
+```
 
-- General: `bash -n bootstrap.sh` and `./bootstrap.sh --check`
-- Hyprland: `hyprctl reload` followed by `hyprctl configerrors`
-- Omarchy shell: configuration and plugins should hot-reload; use `omarchy restart shell` if needed
+After plugin changes, validate the source with:
 
-## Canonical references
+```bash
+omarchy plugin validate work-vpn-shell/.config/omarchy/plugins/dn.work-vpn
+```
 
-- Managed paths and usage: `README.md`
-- Stow and backup behavior: `bootstrap.sh`
-- Operational notes: `docs/`
+The shell normally hot-reloads copied plugin changes. Use
+`omarchy restart shell` only if hot reload fails.
 
-## Git hygiene
+## Work VPN
 
-- Keep edits focused and preserve unrelated local changes.
-- Never commit secrets or machine-private credentials.
-- Avoid destructive Git operations unless explicitly requested.
+The tracked system helper and sudoers rule must be installed explicitly using
+the commands in `README.md`. Connecting uses the graphical Polkit prompt;
+disconnecting is the only passwordless privileged action.

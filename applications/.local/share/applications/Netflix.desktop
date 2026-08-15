@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Netflix
+Comment=Watch Netflix
+Exec=omarchy-launch-webapp https://www.netflix.com/
+Icon=/home/dn/.local/share/icons/hicolor/64x64/apps/netflix.png
+Terminal=false
+StartupNotify=true
+Categories=AudioVideo;
