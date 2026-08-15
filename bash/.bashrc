@@ -9,3 +9,4 @@
 source "$OMARCHY_PATH/default/bash/rc"
 
 # Add personal exports, aliases, and functions below.
+alias hx='helix'
