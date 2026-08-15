@@ -48,8 +48,9 @@ Ui.Panel {
     lastError = ""
     if (action === "connect") desiredConnected = 1
     else if (action === "disconnect") desiredConnected = 0
+    actionProcess.secret = action === "connect" ? otp.trim() : ""
     actionProcess.command = action === "connect"
-      ? ["omarchy-work-vpn", "connect", "--otp", otp.trim()]
+      ? ["omarchy-work-vpn", "connect", "--otp-stdin"]
       : ["omarchy-work-vpn", action]
     actionProcess.running = true
     if (action === "connect") otp = ""
@@ -85,12 +86,19 @@ Ui.Panel {
   Process {
     id: actionProcess
     property string output: ""
+    property string secret: ""
+    stdinEnabled: true
+    onStarted: {
+      if (secret !== "") write(secret + "\n")
+      secret = ""
+    }
     stdout: StdioCollector { onStreamFinished: actionProcess.output += text }
     stderr: StdioCollector { onStreamFinished: actionProcess.output += text }
     onRunningChanged: {
       if (running) {
         output = ""
       } else {
+        secret = ""
         root.busy = false
         if (exitCode !== 0) {
           root.lastError = String(output || "VPN action failed").trim()

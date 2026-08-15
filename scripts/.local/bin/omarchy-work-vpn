@@ -237,11 +237,13 @@ EOF
 }
 
 main() {
+  local otp
   case "${1:-toggle}" in
     status) json_status ;;
     connect)
-      if [[ "${2:-}" == --otp ]]; then
-        connect_vpn "${3:-}"
+      if [[ "${2:-}" == --otp-stdin ]]; then
+        IFS= read -r otp
+        connect_vpn "$otp"
       else
         connect_vpn
       fi
