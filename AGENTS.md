@@ -40,6 +40,7 @@ installed automatically.
 ```bash
 ./bootstrap.sh --dry-run
 ./bootstrap.sh --check
+./bootstrap.sh --doctor
 ./bootstrap.sh --apply
 ./bootstrap.sh --uninstall
 ```

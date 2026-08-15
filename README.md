@@ -37,6 +37,7 @@ They are installed explicitly because Stow does not manage system paths.
 ```bash
 ./bootstrap.sh --dry-run
 ./bootstrap.sh --check
+./bootstrap.sh --doctor
 ./bootstrap.sh --apply
 ```
 
@@ -46,6 +47,7 @@ Modes:
 - `--dry-run`: preview changes
 - `--install`: back up conflicting targets, then apply
 - `--check`: detect Stow conflicts without changing files
+- `--doctor`: validate the live Stow links, Omarchy configuration, VPN integration, and Netflix launcher
 - `--uninstall`: remove managed symlinks
 
 After Hyprland changes, validate with:

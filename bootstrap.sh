@@ -13,7 +13,7 @@ info() { printf '[*] %s\n' "$*"; }
 
 usage() {
   cat <<'USAGE'
-Usage: bootstrap.sh [--dry-run|--apply|--install|--check|--uninstall]
+Usage: bootstrap.sh [--dry-run|--apply|--install|--check|--doctor|--uninstall]
 
 Stows the Quattro-compatible personal configuration:
   ~/.bashrc
@@ -28,6 +28,7 @@ Modes:
   --dry-run   Preview stow changes
   --install   Back up conflicting targets, then apply
   --check     Check whether stow would succeed
+  --doctor    Diagnose the live managed configuration without changing it
   --uninstall Unstow managed files
 USAGE
 }
@@ -38,6 +39,7 @@ while [[ $# -gt 0 ]]; do
     --apply)     MODE="apply"; shift ;;
     --install)   MODE="install"; shift ;;
     --check)     MODE="check"; shift ;;
+    --doctor)    MODE="doctor"; shift ;;
     --uninstall) MODE="uninstall"; shift ;;
     -h|--help)   usage; exit 0 ;;
     *) err "Unknown arg: $1"; usage; exit 1 ;;
@@ -51,7 +53,7 @@ for package in "${PACKAGES[@]}"; do
   }
 done
 
-command -v stow >/dev/null 2>&1 || {
+[[ $MODE == "doctor" ]] || command -v stow >/dev/null 2>&1 || {
   err "Required command not found: stow"
   exit 1
 }
@@ -149,6 +151,195 @@ backup_conflicting_targets() {
   (( moved == 1 )) || info "No conflicting target files to back up"
 }
 
+DOCTOR_PASSES=0
+DOCTOR_WARNINGS=0
+DOCTOR_FAILURES=0
+
+doctor_pass() {
+  printf 'PASS  %s\n' "$1"
+  ((DOCTOR_PASSES += 1))
+}
+
+doctor_warn() {
+  printf 'WARN  %s\n' "$1"
+  ((DOCTOR_WARNINGS += 1))
+}
+
+doctor_fail() {
+  printf 'FAIL  %s\n' "$1"
+  ((DOCTOR_FAILURES += 1))
+}
+
+doctor_command() {
+  local command="$1" importance="${2:-required}"
+  if command -v "$command" >/dev/null 2>&1; then
+    doctor_pass "$command is available"
+  elif [[ $importance == "optional" ]]; then
+    doctor_warn "$command is unavailable"
+  else
+    doctor_fail "$command is unavailable"
+  fi
+}
+
+doctor_stow_links() {
+  local rel package source target source_resolved target_resolved issues=0
+
+  while IFS= read -r -d '' rel; do
+    package="$(owner_for_relpath "$rel")" || continue
+    source="$DOTFILES_DIR/$package/${rel#./}"
+    target="$HOME/${rel#./}"
+
+    if [[ ! -e $target && ! -L $target ]]; then
+      doctor_fail "Missing managed target: $target"
+      ((issues += 1))
+      continue
+    fi
+
+    source_resolved="$(readlink -f -- "$source" || true)"
+    target_resolved="$(readlink -f -- "$target" || true)"
+    if [[ $source_resolved != "$target_resolved" ]]; then
+      doctor_fail "Managed target does not resolve to its source: $target"
+      ((issues += 1))
+    fi
+  done < <(collect_package_files | sort -zu)
+
+  ((issues > 0)) || doctor_pass "All Stow-managed targets resolve to repository sources"
+}
+
+doctor_work_vpn_plugin() {
+  local file issues=0
+
+  if omarchy plugin validate "$WORK_VPN_PLUGIN_SOURCE" >/dev/null 2>&1; then
+    doctor_pass "Work VPN plugin source validates"
+  else
+    doctor_fail "Work VPN plugin source is invalid"
+  fi
+
+  for file in manifest.json BarWidget.qml; do
+    if [[ ! -f $WORK_VPN_PLUGIN_TARGET/$file ]]; then
+      doctor_fail "Missing copied Work VPN plugin file: $file"
+      ((issues += 1))
+    elif ! cmp -s "$WORK_VPN_PLUGIN_SOURCE/$file" "$WORK_VPN_PLUGIN_TARGET/$file"; then
+      doctor_fail "Copied Work VPN plugin file is stale: $file"
+      ((issues += 1))
+    fi
+  done
+  ((issues > 0)) || doctor_pass "Installed Work VPN plugin matches its source"
+}
+
+doctor_work_vpn_system() {
+  local helper_source="$DOTFILES_DIR/system/usr/local/libexec/omarchy-work-vpn-privileged"
+  local helper_target="/usr/local/libexec/omarchy-work-vpn-privileged"
+  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/work-vpn/config"
+  local config_mode
+
+  if [[ ! -x $helper_target ]]; then
+    doctor_fail "Privileged Work VPN helper is not installed"
+  elif cmp -s "$helper_source" "$helper_target"; then
+    doctor_pass "Privileged Work VPN helper matches its tracked source"
+  else
+    doctor_fail "Privileged Work VPN helper differs from its tracked source"
+  fi
+
+  if sudo -n -l "$helper_target" disconnect >/dev/null 2>&1; then
+    doctor_pass "Work VPN disconnect is authorized without a password"
+  else
+    doctor_fail "Work VPN disconnect sudo rule is missing or unavailable"
+  fi
+
+  if [[ ! -f $config_file ]]; then
+    doctor_fail "Machine-private Work VPN config is missing"
+  else
+    config_mode="$(stat -c '%a' "$config_file" 2>/dev/null || true)"
+    if [[ $config_mode == "600" ]]; then
+      doctor_pass "Machine-private Work VPN config has mode 600"
+    else
+      doctor_fail "Machine-private Work VPN config mode is ${config_mode:-unknown}, expected 600"
+    fi
+
+    if grep -Eq '^[[:space:]]*VPN_SERVER="?[^"[:space:]]+"?[[:space:]]*$' "$config_file" &&
+       ! grep -Eq '^[[:space:]]*VPN_SERVER="?vpn\.example\.com"?[[:space:]]*$' "$config_file" &&
+       grep -Eq '^[[:space:]]*VPN_USERNAME="?[^"[:space:]]+"?[[:space:]]*$' "$config_file" &&
+       ! grep -Eq '^[[:space:]]*VPN_USERNAME="?your\.username"?[[:space:]]*$' "$config_file"; then
+      doctor_pass "Work VPN server and username are configured"
+    else
+      doctor_fail "Work VPN server or username is not configured"
+    fi
+  fi
+}
+
+doctor_desktop_entry() {
+  local desktop_file="$DOTFILES_DIR/applications/.local/share/applications/Netflix.desktop"
+  local icon_file="$HOME/.local/share/icons/hicolor/64x64/apps/netflix.png"
+
+  if command -v desktop-file-validate >/dev/null 2>&1; then
+    if desktop-file-validate "$desktop_file" >/dev/null 2>&1; then
+      doctor_pass "Netflix desktop entry validates"
+    else
+      doctor_fail "Netflix desktop entry is invalid"
+    fi
+  else
+    doctor_warn "desktop-file-validate is unavailable"
+  fi
+
+  if [[ -s $icon_file ]]; then
+    doctor_pass "Netflix launcher icon is installed"
+  else
+    doctor_fail "Netflix launcher icon is missing"
+  fi
+}
+
+doctor_hyprland() {
+  local errors
+  if ! command -v hyprctl >/dev/null 2>&1; then
+    doctor_fail "hyprctl is unavailable"
+    return
+  fi
+
+  if errors="$(hyprctl configerrors 2>/dev/null)"; then
+    if [[ -z $errors ]]; then
+      doctor_pass "Hyprland reports no configuration errors"
+    else
+      doctor_fail "Hyprland reports configuration errors"
+      printf '%s\n' "$errors" | sed 's/^/      /'
+    fi
+  else
+    doctor_warn "Hyprland is not reachable from this session"
+  fi
+}
+
+run_doctor() {
+  printf 'Core tools\n'
+  doctor_command stow
+  doctor_command omarchy
+  doctor_command openconnect
+  doctor_command secret-tool optional
+  doctor_command zenity optional
+
+  printf '\nRepository and Stow\n'
+  if command -v stow >/dev/null 2>&1 && run_stow -n -R "${PACKAGES[@]}" >/dev/null 2>&1; then
+    doctor_pass "Stow restow simulation succeeds"
+  else
+    doctor_fail "Stow restow simulation fails"
+  fi
+  doctor_stow_links
+
+  printf '\nOmarchy\n'
+  doctor_hyprland
+  doctor_work_vpn_plugin
+
+  printf '\nWork VPN\n'
+  doctor_work_vpn_system
+
+  printf '\nApplications\n'
+  doctor_desktop_entry
+
+  printf '\nSummary: %d passed, %d warnings, %d failed\n' \
+    "$DOCTOR_PASSES" "$DOCTOR_WARNINGS" "$DOCTOR_FAILURES"
+
+  ((DOCTOR_FAILURES == 0))
+}
+
 printf 'Mode    : %s\n' "$MODE"
 printf 'Packages: %s\n\n' "${PACKAGES[*]}"
 
@@ -165,6 +356,9 @@ case "$MODE" in
       exit 2
     fi
     omarchy plugin validate "$WORK_VPN_PLUGIN_SOURCE"
+    ;;
+  doctor)
+    run_doctor
     ;;
   install)
     ensure_dirs
