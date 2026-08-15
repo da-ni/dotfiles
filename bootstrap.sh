@@ -5,7 +5,7 @@ MODE="apply"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr waybar ghostty voxtype applications systemd scripts omarchy hide)
+PACKAGES=(bash hypr waybar ghostty applications scripts omarchy hide)
 
 HYPR_ROOT_CONF="$HOME/.config/hypr/hyprland.conf"
 
@@ -24,10 +24,8 @@ Stows:
   ~/.config/waybar/style.css
   ~/.config/waybar/*.sh
   ~/.config/ghostty/config
-  ~/.config/voxtype/config.toml
   ~/.local/share/applications/*.desktop
   ~/.local/share/applications/icons/*.png
-  ~/.config/systemd/user/*.service
   ~/.local/bin/*
   ~/.config/omarchy/themes/retro-82/helix.toml
 
@@ -82,7 +80,6 @@ ensure_dirs() {
     "$HOME/.config/hypr/custom" \
     "$HOME/.config/waybar" \
     "$HOME/.config/omarchy/themes" \
-    "$HOME/.config/systemd/user" \
     "$HOME/.local/share/applications" \
     "$HOME/.local/share/applications/icons"
 }
