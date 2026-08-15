@@ -2,8 +2,7 @@
 
 `omarchy-work-vpn` wraps OpenConnect for a one-click Omarchy workflow:
 
-- Waybar VPN icon next to networking
-- desktop launcher named `Work VPN`
+- native Omarchy shell widget
 - private local config in `~/.config/work-vpn/config`
 - password stored in the Secret Service keyring via `secret-tool`
 - two-factor code prompted on each connection
@@ -15,6 +14,20 @@ Install OpenConnect:
 ```bash
 yay -S openconnect
 ```
+
+Install the root-owned helper and its narrowly scoped sudo rule once:
+
+```bash
+sudo install -Dm755 system/usr/local/libexec/omarchy-work-vpn-privileged /usr/local/libexec/omarchy-work-vpn-privileged
+sudo install -Dm440 system/etc/sudoers.d/omarchy-work-vpn /etc/sudoers.d/omarchy-work-vpn
+sudo visudo -cf /etc/sudoers.d/omarchy-work-vpn
+```
+
+Connect uses Quattro's built-in Polkit agent for its native administrator
+password prompt. The sudoers rule grants passwordless access only to the
+root-owned helper's no-argument `disconnect` operation. It does not grant
+passwordless access to Connect, the user-editable launcher, or arbitrary
+OpenConnect commands.
 
 Create and edit the local config:
 
@@ -68,7 +81,17 @@ omarchy-work-vpn status
 omarchy-work-vpn command
 ```
 
-The Waybar icon runs `omarchy-work-vpn toggle`.
+Clicking the Quattro widget opens a native panel with connection status and
+Connect, Disconnect, and Configure actions. Password and OTP prompts remain
+graphical. Connect uses Quattro's Polkit password panel; Disconnect does not
+need an administrator password.
+
+The plugin is stored in the dotfiles, but its bar placement remains a local
+Quattro setting. Enable it once after applying the dotfiles:
+
+```bash
+omarchy plugin enable dn.work-vpn --section right --before omarchy.network
+```
 
 `omarchy-work-vpn command` prints the exact OpenConnect command without passwords or two-factor codes. Use it to verify that your `--authgroup` value is being passed.
 

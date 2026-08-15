@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Name=Work VPN
-Comment=Connect or disconnect the work VPN
-Exec=omarchy-launch-floating-terminal-with-presentation omarchy-work-vpn toggle
-Terminal=false
-Type=Application
-Icon=network-vpn
-StartupNotify=true

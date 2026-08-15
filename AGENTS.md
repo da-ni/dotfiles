@@ -6,13 +6,12 @@ This repository manages personal Omarchy Quattro overrides with GNU Stow.
 
 1. User task request
 2. `AGENTS.md`
-3. Files listed in `opencode.json`
-4. Existing repository conventions
+3. Existing repository conventions
 
 ## Project intent
 
 - Let Omarchy own and update desktop defaults.
-- Keep only personal overrides, themes, launchers, and application entries here.
+- Keep only personal Hyprland overrides and the Work VPN integration here.
 - Edit repository sources, then re-apply with `./bootstrap.sh --apply`.
 - Do not edit `/usr/share/omarchy/`; reading it for reference is encouraged.
 
@@ -20,17 +19,15 @@ This repository manages personal Omarchy Quattro overrides with GNU Stow.
 
 - `bash/`
 - `hypr/.config/hypr/`
-- `ghostty/`
-- `applications/`
 - `scripts/`
-- `omarchy/`
+- `work-vpn-shell/`
 - `docs/`
 
 ## Quattro boundaries
 
 - Hyprland overrides use Lua files such as `bindings.lua`, `input.lua`, and `autostart.lua`.
 - Do not restore legacy `.conf` source injection or `~/.config/hypr/custom/`.
-- Omarchy shell replaces Waybar; shell customization belongs in `~/.config/omarchy/shell.json` or plugins.
+- Omarchy shell replaces Waybar; keep bar layout machine-local and track only the Work VPN plugin source.
 - Keep machine-private credentials and service-specific state outside the repository.
 
 ## Safe workflow
@@ -45,7 +42,6 @@ This repository manages personal Omarchy Quattro overrides with GNU Stow.
 - General: `bash -n bootstrap.sh` and `./bootstrap.sh --check`
 - Hyprland: `hyprctl reload` followed by `hyprctl configerrors`
 - Omarchy shell: configuration and plugins should hot-reload; use `omarchy restart shell` if needed
-- Ghostty: `omarchy restart terminal`
 
 ## Canonical references
 

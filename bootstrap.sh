@@ -4,7 +4,9 @@ set -euo pipefail
 MODE="apply"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-PACKAGES=(bash hypr ghostty applications scripts omarchy)
+PACKAGES=(bash hypr scripts)
+WORK_VPN_PLUGIN_SOURCE="$DOTFILES_DIR/work-vpn-shell/.config/omarchy/plugins/dn.work-vpn"
+WORK_VPN_PLUGIN_TARGET="$HOME/.config/omarchy/plugins/dn.work-vpn"
 
 err()  { printf 'Error: %s\n' "$*" >&2; }
 info() { printf '[*] %s\n' "$*"; }
@@ -17,10 +19,8 @@ Stows the Quattro-compatible personal configuration:
   ~/.bashrc
   ~/.config/hypr/{bindings,input,autostart}.lua
   ~/.config/hypr/hyprsunset.conf
-  ~/.config/ghostty/config
-  ~/.local/share/applications/*.desktop
+  ~/.config/omarchy/plugins/dn.work-vpn
   ~/.local/bin/*
-  ~/.config/omarchy/themes/retro-82/helix.toml
 
 Modes:
   --apply     Restow packages
@@ -62,51 +62,34 @@ run_stow() {
 ensure_dirs() {
   mkdir -p \
     "$HOME/.config/hypr" \
-    "$HOME/.config/ghostty" \
-    "$HOME/.config/omarchy/themes" \
-    "$HOME/.local/bin" \
-    "$HOME/.local/share/applications" \
-    "$HOME/.local/share/applications/icons"
+    "$HOME/.config/omarchy/plugins" \
+    "$HOME/.local/bin"
 }
 
 ensure_executable_files() {
   local dir file target
-  for dir in \
-    "$DOTFILES_DIR/scripts/.local/bin" \
-    "$DOTFILES_DIR/applications/.local/share/applications"; do
+  for dir in "$DOTFILES_DIR/scripts/.local/bin"; do
     [[ -d "$dir" ]] || continue
     while IFS= read -r -d '' file; do
       chmod +x "$file"
-      case "$dir" in
-        "$DOTFILES_DIR/scripts/.local/bin")
-          target="$HOME/.local/bin/$(basename "$file")"
-          ;;
-        "$DOTFILES_DIR/applications/.local/share/applications")
-          target="$HOME/.local/share/applications/$(basename "$file")"
-          ;;
-      esac
+      target="$HOME/.local/bin/$(basename "$file")"
       [[ -e "$target" ]] && chmod +x "$target"
     done < <(find "$dir" -maxdepth 1 -type f -print0)
   done
 }
 
-ensure_webapp_icons() {
-  local icon="$HOME/.local/share/applications/icons/Netflix.png"
-  local url="https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.png"
-
-  [[ -s "$icon" ]] && return 0
-  command -v curl >/dev/null 2>&1 || {
-    err "curl not found; skipping Netflix icon download"
-    return 0
-  }
-
-  if curl -fsSL -o "$icon" "$url"; then
-    info "Downloaded Netflix icon to $icon"
-  else
-    rm -f -- "$icon"
-    err "Failed to download Netflix icon"
-    return 1
+sync_work_vpn_plugin() {
+  if [[ -L "$WORK_VPN_PLUGIN_TARGET" ]]; then
+    unlink "$WORK_VPN_PLUGIN_TARGET"
   fi
+  mkdir -p "$WORK_VPN_PLUGIN_TARGET"
+  rm -f \
+    "$WORK_VPN_PLUGIN_TARGET/Panel.qml" \
+    "$WORK_VPN_PLUGIN_TARGET/WorkVpnPanel.qml"
+  install -m644 \
+    "$WORK_VPN_PLUGIN_SOURCE/manifest.json" \
+    "$WORK_VPN_PLUGIN_SOURCE/BarWidget.qml" \
+    "$WORK_VPN_PLUGIN_TARGET/"
 }
 
 collect_package_files() {
@@ -164,6 +147,7 @@ printf 'Packages: %s\n\n' "${PACKAGES[*]}"
 case "$MODE" in
   dry-run)
     run_stow -n -R "${PACKAGES[@]}"
+    info "Would sync Work VPN plugin to $WORK_VPN_PLUGIN_TARGET"
     ;;
   check)
     if run_stow -n -R "${PACKAGES[@]}" >/dev/null; then
@@ -172,19 +156,20 @@ case "$MODE" in
       err "Stow check failed."
       exit 2
     fi
+    omarchy plugin validate "$WORK_VPN_PLUGIN_SOURCE"
     ;;
   install)
     ensure_dirs
     backup_conflicting_targets
     run_stow -R "${PACKAGES[@]}"
     ensure_executable_files
-    ensure_webapp_icons
+    sync_work_vpn_plugin
     ;;
   apply)
     ensure_dirs
     run_stow -R "${PACKAGES[@]}"
     ensure_executable_files
-    ensure_webapp_icons
+    sync_work_vpn_plugin
     ;;
   uninstall)
     run_stow -D "${PACKAGES[@]}"

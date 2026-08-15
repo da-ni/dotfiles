@@ -20,6 +20,7 @@ PROMPT_FOR_OTP=1
 VPN_INTERFACE="tun0"
 DISABLE_DNS_OVER_TLS=1
 OPENCONNECT_SCRIPT_BASE="/etc/vpnc/vpnc-script"
+PRIVILEGED_HELPER="/usr/local/libexec/omarchy-work-vpn-privileged"
 
 notify() {
   if command -v notify-send >/dev/null 2>&1; then
@@ -144,9 +145,9 @@ is_connected() {
 json_status() {
   load_config
   if is_connected; then
-    printf '{"text":"󰒘","class":"connected","tooltip":"%s connected\\nLeft click: disconnect\\nRight click: edit config"}\n' "$VPN_NAME"
+    printf '{"text":"󰒘","class":"connected","tooltip":"%s connected"}\n' "$VPN_NAME"
   else
-    printf '{"text":"󰦝","class":"disconnected","tooltip":"%s disconnected\\nLeft click: connect\\nRight click: edit config"}\n' "$VPN_NAME"
+    printf '{"text":"󰦝","class":"disconnected","tooltip":"%s disconnected"}\n' "$VPN_NAME"
   fi
 }
 
@@ -189,13 +190,14 @@ prompt_text() {
 }
 
 connect_vpn() {
+  local supplied_otp="${1:-}"
   load_config
   [[ -n "$VPN_SERVER" && "$VPN_SERVER" != "vpn.example.com" ]] || die "Set VPN_SERVER in $CONFIG_FILE first."
   [[ -n "$VPN_USERNAME" && "$VPN_USERNAME" != "your.username" ]] || die "Set VPN_USERNAME in $CONFIG_FILE first."
   command -v openconnect >/dev/null 2>&1 || die "Install openconnect first: yay -S openconnect"
+  (( ${#OPENCONNECT_EXTRA_ARGS[@]} == 0 )) || die "OPENCONNECT_EXTRA_ARGS is not supported by the privileged helper."
 
   if is_connected; then
-    notify "Already connected."
     return 0
   fi
 
@@ -207,34 +209,27 @@ connect_vpn() {
     store_secret "$password"
   fi
 
-  otp=""
+  otp="$supplied_otp"
   if [[ "${PROMPT_FOR_OTP:-1}" == 1 ]]; then
-    otp="$(prompt_text "$VPN_NAME" "Two-factor code" 0)"
+    [[ -n "$otp" ]] || otp="$(prompt_text "$VPN_NAME" "Two-factor code" 0)"
     [[ -n "$otp" ]] || die "Two-factor prompt cancelled."
   fi
 
-  local script_wrapper
-  script_wrapper="$(write_vpnc_script_wrapper)"
-
-  local cmd
-  build_openconnect_cmd "$script_wrapper"
-  cmd=("${OPENCONNECT_CMD[@]}")
-
-  notify "Connecting..."
   printf 'Connecting to %s as %s\n' "$VPN_SERVER" "$VPN_USERNAME"
   if [[ -n "${OPENCONNECT_AUTHGROUP:-}" ]]; then
     printf 'Auth group: %s\n' "$OPENCONNECT_AUTHGROUP"
   fi
-  printf 'OpenConnect will daemonize after authentication; this terminal can close after the command returns.\n\n'
+  [[ -x "$PRIVILEGED_HELPER" ]] || die "Run the privileged helper installation from docs/work-vpn.md first."
 
-  sudo -v
-
-  if {
+  if ! {
     printf '%s\n' "$password"
     [[ -n "$otp" ]] && printf '%s\n' "$otp"
-  } | sudo "${cmd[@]}"; then
-    notify "Connected."
-  else
+  } | pkexec "$PRIVILEGED_HELPER" connect \
+    "$OPENCONNECT_PROTOCOL" \
+    "${OPENCONNECT_AUTHGROUP:-}" \
+    "${OPENCONNECT_USER_AGENT:-}" \
+    "$VPN_USERNAME" \
+    "$VPN_SERVER"; then
     die "Connection failed."
   fi
 }
@@ -300,19 +295,8 @@ EOF
 
 disconnect_vpn() {
   load_config
-  if [[ -s "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-    local pid
-    pid="$(cat "$PID_FILE")"
-    if ! kill "$pid" 2>/dev/null; then
-      sudo kill "$pid" 2>/dev/null || true
-    fi
-    rm -f "$PID_FILE"
-  elif [[ -n "$VPN_SERVER" ]]; then
-    pkill -f "openconnect.*${VPN_SERVER}" 2>/dev/null || sudo pkill -f "openconnect.*${VPN_SERVER}" 2>/dev/null || true
-  else
-    pkill -x openconnect 2>/dev/null || sudo pkill -x openconnect 2>/dev/null || true
-  fi
-  notify "Disconnected."
+  [[ -x "$PRIVILEGED_HELPER" ]] || die "Run the privileged helper installation from docs/work-vpn.md first."
+  sudo -n "$PRIVILEGED_HELPER" disconnect
 }
 
 edit_config() {
@@ -337,7 +321,7 @@ usage() {
 Usage: omarchy-work-vpn <status|connect|disconnect|toggle|setup|edit|command>
 
 Commands:
-  status      Print Waybar JSON status.
+  status      Print machine-readable JSON status.
   connect     Connect with OpenConnect.
   disconnect  Stop the OpenConnect process.
   toggle      Connect or disconnect based on current state.
@@ -350,7 +334,13 @@ EOF
 main() {
   case "${1:-toggle}" in
     status) json_status ;;
-    connect) connect_vpn ;;
+    connect)
+      if [[ "${2:-}" == --otp ]]; then
+        connect_vpn "${3:-}"
+      else
+        connect_vpn
+      fi
+      ;;
     disconnect) disconnect_vpn ;;
     toggle)
       load_config

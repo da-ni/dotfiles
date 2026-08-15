@@ -11,12 +11,10 @@ Omarchy owns the desktop defaults. This repository keeps only personal overrides
 - `~/.config/hypr/input.lua`
 - `~/.config/hypr/autostart.lua`
 - `~/.config/hypr/hyprsunset.conf`
-- `~/.config/ghostty/config`
+- `~/.config/omarchy/plugins/dn.work-vpn`
 - `~/.local/bin/omarchy-work-vpn`
-- `~/.local/share/applications/*.desktop`
-- `~/.config/omarchy/themes/retro-82/helix.toml`
 
-The Omarchy shell, bar, notifications, and stock Hyprland entry point remain package-managed.
+The Omarchy shell, bar layout, notifications, terminals, themes, and stock Hyprland entry point remain package-managed. Only the Work VPN plugin source is tracked.
 
 ## Prerequisites
 
@@ -29,6 +27,10 @@ Optional runtime dependencies:
 
 - `openconnect`, `secret-tool`, `zenity` for the Work VPN launcher
 - `voxtype` for the Menu-key dictation binding
+
+The Work VPN additionally uses the root-owned helper and scoped sudoers rule
+documented in `docs/work-vpn.md`; system files are installed explicitly and
+are not managed by Stow.
 
 ## Usage
 
@@ -55,7 +57,10 @@ hyprctl configerrors
 
 ## Work VPN
 
-The launcher is installed as `~/.local/bin/omarchy-work-vpn` with a desktop entry. Its configuration and keyring password intentionally stay outside this repository.
+The launcher is installed as `~/.local/bin/omarchy-work-vpn` with a Quattro
+shell widget. Its configuration and keyring password
+intentionally stay outside this repository. The widget placement remains a
+machine-local Quattro setting rather than tracking `shell.json`.
 
 One-time setup:
 
@@ -63,6 +68,7 @@ One-time setup:
 yay -S openconnect
 omarchy-work-vpn setup
 $EDITOR ~/.config/work-vpn/config
+omarchy plugin enable dn.work-vpn --section right --before omarchy.network
 ```
 
 Use `omarchy-work-vpn command` to preview the OpenConnect command without exposing secrets.

@@ -1,0 +1,1 @@
+dn ALL=(root) NOPASSWD: /usr/local/libexec/omarchy-work-vpn-privileged disconnect

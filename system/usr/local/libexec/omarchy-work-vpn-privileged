@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || {
+  echo "This helper must run as root." >&2
+  exit 1
+}
+
+caller_uid="${SUDO_UID:-${PKEXEC_UID:-}}"
+[[ $caller_uid =~ ^[0-9]+$ && $caller_uid -ne 0 ]] || {
+  echo "This helper must be called through sudo or pkexec by a regular user." >&2
+  exit 1
+}
+
+runtime_dir="/run/user/$caller_uid"
+pid_file="$runtime_dir/work-vpn-openconnect.pid"
+
+connect_vpn() {
+  [[ $# -eq 5 ]] || { echo "Invalid connect arguments." >&2; exit 2; }
+  local protocol="$1" authgroup="$2" useragent="$3" username="$4" server="$5"
+
+  [[ -z $protocol || $protocol =~ ^(anyconnect|gp|pulse|nc|f5|fortinet|array)$ ]] || {
+    echo "Unsupported OpenConnect protocol." >&2
+    exit 2
+  }
+  [[ -n $username && $username != -* && -n $server && $server != -* ]] || {
+    echo "Invalid VPN identity or server." >&2
+    exit 2
+  }
+
+  local cmd=(
+    /usr/bin/openconnect
+    --no-external-auth
+    --passwd-on-stdin
+    --background
+    --pid-file "$pid_file"
+    --script /etc/vpnc/vpnc-script
+  )
+  [[ -n $protocol ]] && cmd+=(--protocol "$protocol")
+  [[ -n $authgroup ]] && cmd+=(--authgroup "$authgroup")
+  [[ -n $useragent ]] && cmd+=(--useragent "$useragent")
+  cmd+=(--user "$username" "$server")
+
+  "${cmd[@]}"
+  /usr/bin/resolvectl dnsovertls tun0 no || true
+}
+
+disconnect_vpn() {
+  [[ $# -eq 0 ]] || { echo "Invalid disconnect arguments." >&2; exit 2; }
+  [[ -s $pid_file ]] || exit 0
+
+  local pid comm
+  pid="$(<"$pid_file")"
+  [[ $pid =~ ^[0-9]+$ ]] || { echo "Invalid VPN PID file." >&2; exit 2; }
+  comm="$(cat -- "/proc/$pid/comm" 2>/dev/null || true)"
+  [[ $comm == openconnect ]] || { echo "PID does not belong to OpenConnect." >&2; exit 2; }
+
+  kill "$pid"
+  rm -f "$pid_file"
+}
+
+case "${1:-}" in
+  connect) shift; connect_vpn "$@" ;;
+  disconnect) shift; disconnect_vpn "$@" ;;
+  *) echo "Usage: omarchy-work-vpn-privileged <connect|disconnect>" >&2; exit 2 ;;
+esac
