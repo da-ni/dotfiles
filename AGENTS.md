@@ -16,6 +16,7 @@ configuration that is genuinely personal or machine-specific.
 - `herdr/config.patch`: personal pane styling layered onto Omarchy's current Herdr config
 - `hypr/.config/hypr/bindings.lua`: personal application keybindings
 - `hypr/.config/hypr/input.lua`: personal input settings
+- `hypr/.config/hypr/monitors.lua`: laptop and external display scaling
 - `hypr/.config/hypr/autostart.lua`: starts the scheduled night-light service
 - `hypr/.config/hypr/hyprsunset.conf`: personal night-light schedule
 - `applications/.local/share/`: searchable Netflix launcher and icon
